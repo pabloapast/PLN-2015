@@ -1,5 +1,10 @@
 # https://docs.python.org/3/library/collections.html
 from collections import defaultdict
+import math
+import random
+
+START = '<s>'
+STOP = '</s>'
 
 
 class NGram(object):
@@ -14,6 +19,8 @@ class NGram(object):
         self.counts = counts = defaultdict(int)
 
         for sent in sents:
+            sent = ([START] * (n - 1)) + sent
+            sent.append(STOP)
             for i in range(len(sent) - n + 1):
                 ngram = tuple(sent[i: i + n])
                 counts[ngram] += 1
@@ -27,3 +34,67 @@ class NGram(object):
 
         tokens = prev_tokens + [token]
         return float(self.counts[tuple(tokens)]) / self.counts[tuple(prev_tokens)]
+
+    def count(self, tokens):
+        """Count for an n-gram or (n-1)-gram.
+ 
+        tokens -- the n-gram or (n-1)-gram tuple.
+        """
+        return self.counts[tuple(tokens)]
+ 
+    def cond_prob(self, token, prev_tokens=None):
+        """Conditional probability of a token.
+ 
+        token -- the token.
+        prev_tokens -- the previous n-1 tokens (optional only if n = 1).
+        """
+        p = 0
+        n = self.n
+        if n == 1:  # Caso para unigramas
+            p = self.prob(token)
+        else:
+            #assert len(prev_tokens) == n - 1
+            if set(prev_tokens) == {START}:  # P(x | *, ..., *)
+                p = 1
+            else:
+                p = self.prob(token, prev_tokens)
+        return p
+
+    def sent_prob(self, sent):
+        """Probability of a sentence. Warning: subject to underflow problems.
+ 
+        sent -- the sentence as a list of tokens.
+        """
+        pass
+ 
+    def sent_log_prob(self, sent):
+        """Log-probability of a sentence.
+ 
+        sent -- the sentence as a list of tokens.
+        """
+        n = self.n
+        p = 0
+        for i in range(n - 1, len(sent)):  # El resto de los tokens
+            p_i = self.cond_prob(sent[i], sent[i - (n - 1) : i])
+            p += math.log2(p_i)
+        return p
+
+
+class NGramGenerator:
+ 
+    def __init__(self, model):
+        """
+        model -- n-gram model.
+        """
+        pass
+ 
+    def generate_sent(self):
+        """Randomly generate a sentence."""
+        pass
+ 
+    def generate_token(self, prev_tokens=None):
+        """Randomly generate a token, given prev_tokens.
+ 
+        prev_tokens -- the previous n-1 tokens (optional only if n = 1).
+        """
+        pass
