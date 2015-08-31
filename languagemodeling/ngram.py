@@ -1,6 +1,6 @@
 # https://docs.python.org/3/library/collections.html
 from collections import defaultdict
-import math
+from math import log, pow
 import random
 
 START = '<s>'
@@ -21,6 +21,7 @@ class NGram(object):
         for sent in sents:
             sent = ([START] * (n - 1)) + sent
             sent.append(STOP)
+            #print(sent)
             for i in range(len(sent) - n + 1):
                 ngram = tuple(sent[i: i + n])
                 counts[ngram] += 1
@@ -48,7 +49,7 @@ class NGram(object):
         token -- the token.
         prev_tokens -- the previous n-1 tokens (optional only if n = 1).
         """
-        p = 0
+        p = -1
         n = self.n
         if n == 1:  # Caso para unigramas
             p = self.prob(token)
@@ -58,6 +59,7 @@ class NGram(object):
                 p = 1
             else:
                 p = self.prob(token, prev_tokens)
+        assert p >= 0
         return p
 
     def sent_prob(self, sent):
@@ -65,7 +67,16 @@ class NGram(object):
  
         sent -- the sentence as a list of tokens.
         """
-        pass
+        n = self.n
+        p = 1
+        sent = ([START] * (n - 1)) + sent
+        sent.append(STOP)
+        print(sent)
+        for i in range(n - 1, len(sent)):
+            print sent[i]
+            p_i = self.cond_prob(sent[i], sent[i - (n - 1) : i])
+            p *= p_i
+        return p
  
     def sent_log_prob(self, sent):
         """Log-probability of a sentence.
@@ -74,9 +85,16 @@ class NGram(object):
         """
         n = self.n
         p = 0
-        for i in range(n - 1, len(sent)):  # El resto de los tokens
+        sent = ([START] * (n - 1)) + sent
+        sent.append(STOP)
+        print(sent)
+        for i in range(n - 1, len(sent)):
             p_i = self.cond_prob(sent[i], sent[i - (n - 1) : i])
-            p += math.log2(p_i)
+            if p_i == 0:
+                return float('-inf')
+            else:
+                print(sent[i], p_i, log(p_i,2))
+                p += log(p_i, 2)
         return p
 
 
