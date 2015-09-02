@@ -53,6 +53,7 @@ class NGram(object):
         if n == 1:  # Caso para unigramas
             p = self.prob(token)
         else:
+            assert prev_tokens != None
             if self.count(prev_tokens) > 0:
                 p = self.prob(token, prev_tokens)
             else:
@@ -94,14 +95,25 @@ class NGram(object):
         return p
 
 
-class NGramGenerator:
+class NGramGenerator(object):
  
     def __init__(self, model):
         """
         model -- n-gram model.
         """
-        pass
- 
+        self.probs = defaultdict(defaultdict)
+        self.sorted_probs = defaultdict(list)
+
+        for key1, value1 in model.counts.items():
+            if len(key1) == (model.n - 1):
+                prev_tokens = key1
+                for key2, value2 in model.counts.items():
+                    if len(key2) == model.n and prev_tokens == key2[:-1]:
+                        token = key2[-1]
+                        self.probs[prev_tokens][token] = model.prob(token, list(prev_tokens))
+        for key, value in self.probs.items():
+            self.sorted_probs[key] = list(value.items())
+
     def generate_sent(self):
         """Randomly generate a sentence."""
         pass
