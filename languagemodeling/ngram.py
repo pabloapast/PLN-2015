@@ -110,9 +110,11 @@ class NGramGenerator(object):
                 for key2, value2 in model.counts.items():
                     if len(key2) == model.n and prev_tokens == key2[:-1]:
                         token = key2[-1]
-                        self.probs[prev_tokens][token] = model.prob(token, list(prev_tokens))
+                        self.probs[prev_tokens][token] = model.prob(token,
+                                                            list(prev_tokens))
         for key, value in self.probs.items():
-            self.sorted_probs[key] = list(value.items())
+            self.sorted_probs[key] = sorted(list(value.items()),
+                                        key=lambda tup: tup[1], reverse=True)
 
     def generate_sent(self):
         """Randomly generate a sentence."""
@@ -123,4 +125,20 @@ class NGramGenerator(object):
  
         prev_tokens -- the previous n-1 tokens (optional only if n = 1).
         """
-        pass
+        token = ''
+        rand = random.random()  # random value in the range [0, 1)
+        token_prob_tuples = ()
+
+        if prev_tokens == None:
+            token_prob_tuples = self.sorted_probs[()]
+        else:
+            token_prob_tuples = self.sorted_probs[prev_tokens]
+
+        p0 = 0.0
+        for t, p in token_prob_tuples:
+            if rand <= p + p0:
+                token = t
+                break
+            else:
+                p0 += p
+        return token
