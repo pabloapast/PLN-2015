@@ -101,14 +101,15 @@ class NGramGenerator(object):
         """
         model -- n-gram model.
         """
+        self.n = model.n
         self.probs = defaultdict(defaultdict)
         self.sorted_probs = defaultdict(list)
 
         for key1, value1 in model.counts.items():
-            if len(key1) == (model.n - 1):
+            if len(key1) == (self.n - 1):
                 prev_tokens = key1
                 for key2, value2 in model.counts.items():
-                    if len(key2) == model.n and prev_tokens == key2[:-1]:
+                    if len(key2) == self.n and prev_tokens == key2[:-1]:
                         token = key2[-1]
                         self.probs[prev_tokens][token] = model.prob(token,
                                                             list(prev_tokens))
@@ -118,7 +119,17 @@ class NGramGenerator(object):
 
     def generate_sent(self):
         """Randomly generate a sentence."""
-        pass
+        prev_tokens = None
+        if self.n > 1:
+            prev_tokens = (START,) * (self.n - 1)
+        sent = []
+        token = self.generate_token(prev_tokens)
+        while token != STOP:
+            sent.append(token)
+            token = self.generate_token(prev_tokens)
+            print(sent)
+        return sent
+
  
     def generate_token(self, prev_tokens=None):
         """Randomly generate a token, given prev_tokens.
@@ -136,9 +147,10 @@ class NGramGenerator(object):
 
         p0 = 0.0
         for t, p in token_prob_tuples:
-            if rand <= p + p0:
+            if rand <= p0 + p:
                 token = t
                 break
             else:
                 p0 += p
+        assert token != ''
         return token
