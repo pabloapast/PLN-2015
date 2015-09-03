@@ -70,9 +70,7 @@ class NGram(object):
         p = 1
         sent = ([START] * (n - 1)) + sent
         sent.append(STOP)
-        print(sent)
         for i in range(n - 1, len(sent)):
-            print (sent[i], sent[i - (n - 1) : i])
             p_i = self.cond_prob(sent[i], sent[i - (n - 1) : i])
             p *= p_i
         return p
@@ -105,29 +103,28 @@ class NGramGenerator(object):
         self.probs = defaultdict(defaultdict)
         self.sorted_probs = defaultdict(list)
 
-        for key1, value1 in model.counts.items():
-            if len(key1) == (self.n - 1):
-                prev_tokens = key1
-                for key2, value2 in model.counts.items():
-                    if len(key2) == self.n and prev_tokens == key2[:-1]:
-                        token = key2[-1]
-                        self.probs[prev_tokens][token] = model.prob(token,
-                                                            list(prev_tokens))
+        for key, value in model.counts.items():
+            if len(key) == self.n:
+                prev_tokens = key[:-1]
+                token = key[-1]
+                self.probs[prev_tokens][token] = model.prob(token,
+                                                    list(prev_tokens))
+
         for key, value in self.probs.items():
             self.sorted_probs[key] = sorted(list(value.items()),
                                         key=lambda tup: tup[1], reverse=True)
 
     def generate_sent(self):
         """Randomly generate a sentence."""
-        prev_tokens = None
-        if self.n > 1:
-            prev_tokens = (START,) * (self.n - 1)
+        prev_tokens = [START] * (self.n - 1)
         sent = []
         token = self.generate_token(prev_tokens)
         while token != STOP:
             sent.append(token)
+            if self.n > 1:
+                prev_tokens.pop(0)
+                prev_tokens.append(token)
             token = self.generate_token(prev_tokens)
-            print(sent)
         return sent
 
  
@@ -140,10 +137,10 @@ class NGramGenerator(object):
         rand = random.random()  # random value in the range [0, 1)
         token_prob_tuples = ()
 
-        if prev_tokens == None:
+        if prev_tokens == None or prev_tokens == []:
             token_prob_tuples = self.sorted_probs[()]
         else:
-            token_prob_tuples = self.sorted_probs[prev_tokens]
+            token_prob_tuples = self.sorted_probs[tuple(prev_tokens)]
 
         p0 = 0.0
         for t, p in token_prob_tuples:
@@ -152,5 +149,4 @@ class NGramGenerator(object):
                 break
             else:
                 p0 += p
-        assert token != ''
         return token
