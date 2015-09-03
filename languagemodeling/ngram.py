@@ -150,3 +150,33 @@ class NGramGenerator(object):
             else:
                 p0 += p
         return token
+
+
+class AddOneNGram:
+ 
+    def __init__(self, n, sents):
+        """
+        n -- order of the model.
+        sents -- list of sentences, each one being a list of tokens.
+        """
+        pass
+ 
+    def count(self, tokens):
+        """Count for an n-gram or (n-1)-gram.
+ 
+        tokens -- the n-gram or (n-1)-gram tuple.
+        """
+        pass
+ 
+    def cond_prob(self, token, prev_tokens=None):
+        """Conditional probability of a token.
+ 
+        token -- the token.
+        prev_tokens -- the previous n-1 tokens (optional only if n = 1).
+        """
+        pass
+ 
+    def V(self):
+        """Size of the vocabulary.
+        """
+        pass
