@@ -60,7 +60,7 @@ class TestNGramGenerator(TestCase):
         }
 
         self.assertEqual(dict(generator.probs), probs)
-        self.assertEqual(generator.sorted_probs, sorted_probs)
+        self.assertEqual(dict(generator.sorted_probs), sorted_probs)
 
     def test_generate_token(self):
         ngram = NGram(2, self.sents)
@@ -70,6 +70,10 @@ class TestNGramGenerator(TestCase):
             # after 'el' always comes 'gato':
             token = generator.generate_token(('el',))
             self.assertEqual(token, 'gato')
+
+            # after '.' always comes '</s>':
+            token = generator.generate_token(('.',))
+            self.assertEqual(token, '</s>')
 
             # after 'come' may come 'pescado' or 'salmón'
             token = generator.generate_token(('come',))
