@@ -184,7 +184,10 @@ class AddOneNGram:
     def V(self):
         """Size of the vocabulary.
         """
-        v = len(self.model.counts)
+        v = 0
+        for token in self.model.counts.keys():
+            if len(token) == 1:
+                v += 1
 
         if self.model.n == 1 or self.model.n == 2:
             v += 1  # Need add START or STOP char
@@ -196,13 +199,13 @@ class AddOneNGram:
     class EvalModel:
     
         def __init__(self, model, test):
-        """
-        model -- n-gram model.
-        test -- list of sentences for test
-        """
-        self.model = model
-        self.test = test
-        self.M = len(((' ').join(test)).split(' '))
+            """
+            model -- n-gram model.
+            test -- list of sentences for test
+            """
+            self.model = model
+            self.test = test
+            self.M = len(((' ').join(test)).split(' '))
 
         def log_prob(self):
             """ Log probability of the model
