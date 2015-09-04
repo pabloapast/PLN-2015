@@ -1,11 +1,12 @@
 """Train an n-gram model.
 
 Usage:
-  train.py -n <n> -o <file>
+  train.py -n <n> -i <file> -o <file>
   train.py -h | --help
 
 Options:
   -n <n>        Order of the model.
+  -i <file>     Input corpus file.
   -o <file>     Output model file.
   -h --help     Show this screen.
 """
@@ -15,7 +16,7 @@ import pickle
 from nltk.corpus import PlaintextCorpusReader
 from nltk.tokenize import RegexpTokenizer
 
-from languagemodeling.ngram import NGram
+from ngram import NGram
 
 pattern = '''(?ix)    # set flag to allow verbose regexps
       (sr\.|sra\.|dr\.|dra\.)
@@ -31,7 +32,7 @@ if __name__ == '__main__':
 
     # load the data
     tokenizer = RegexpTokenizer(pattern)
-    corpus = PlaintextCorpusReader('../../corpus', 'books_corpus.txt', 
+    corpus = PlaintextCorpusReader('../corpus', opts['-i'], 
                                    word_tokenizer=tokenizer)
     sents = corpus.sents()
 
