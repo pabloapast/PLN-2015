@@ -12,9 +12,6 @@ Options:
 from docopt import docopt
 import pickle
 
-#from nltk.corpus import PlaintextCorpusReader
-#from nltk.tokenize import RegexpTokenizer
-
 from ngram import NGramGenerator
 
 
