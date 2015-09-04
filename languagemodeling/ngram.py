@@ -1,6 +1,6 @@
 # https://docs.python.org/3/library/collections.html
 from collections import defaultdict
-from math import log2
+from math import log2   
 import random
 
 START = '<s>'
@@ -159,14 +159,14 @@ class AddOneNGram:
         n -- order of the model.
         sents -- list of sentences, each one being a list of tokens.
         """
-        pass
+        self.model = NGram(n, sents)
  
     def count(self, tokens):
         """Count for an n-gram or (n-1)-gram.
  
         tokens -- the n-gram or (n-1)-gram tuple.
         """
-        pass
+        return self.model.count(tokens) + 1
  
     def cond_prob(self, token, prev_tokens=None):
         """Conditional probability of a token.
@@ -174,9 +174,48 @@ class AddOneNGram:
         token -- the token.
         prev_tokens -- the previous n-1 tokens (optional only if n = 1).
         """
-        pass
+        if not prev_tokens:
+            prev_tokens = []
+        assert len(prev_tokens) == self.model.n - 1
+
+        tokens = prev_tokens + [token]
+        return float(self.count(tuple(tokens))) / (self.model.counts[tuple(prev_tokens)] + self.V())
  
     def V(self):
         """Size of the vocabulary.
         """
-        pass
+        v = len(self.model.counts)
+
+        if self.model.n == 1 or self.model.n == 2:
+            v += 1  # Need add START or STOP char
+        else:
+            v += 2  # Need add START and STOP char
+        return v
+
+
+    class EvalModel:
+    
+        def __init__(self, model, test):
+        """
+        model -- n-gram model.
+        test -- list of sentences for test
+        """
+        self.model = model
+        self.test = test
+        self.M = len(((' ').join(test)).split(' '))
+
+        def log_prob(self):
+            """ Log probability of the model
+            """
+            return sum([model.sent_log_prob(sent) for sent in self.test])
+
+        def cross_entropy(self):
+            """ Cross-Entropy or Average log probability of the model
+            """
+            return self.log_prob() / self.M
+
+        def perplexity(self):
+            """ Perplexity of the model
+            """
+            return 2 ** (- self.cross_entropy())
+            
