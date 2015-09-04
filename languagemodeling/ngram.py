@@ -157,7 +157,7 @@ class AddOneNGram:
     def __init__(self, n, sents):
         """
         n -- order of the model.
-        sents -- list of sentences, each one being a list of tokens.
+        sents -- list of list of sentences, each one being a list of tokens.
         """
         self.model = NGram(n, sents)
  
@@ -166,7 +166,7 @@ class AddOneNGram:
  
         tokens -- the n-gram or (n-1)-gram tuple.
         """
-        return self.model.count(tokens) + 1
+        return self.model.count(tokens)
  
     def cond_prob(self, token, prev_tokens=None):
         """Conditional probability of a token.
@@ -179,7 +179,8 @@ class AddOneNGram:
         assert len(prev_tokens) == self.model.n - 1
 
         tokens = prev_tokens + [token]
-        return float(self.count(tuple(tokens))) / (self.model.counts[tuple(prev_tokens)] + self.V())
+        return float((self.count(tuple(tokens))) + 1) / \
+               (self.model.counts[tuple(prev_tokens)] + self.V())
  
     def V(self):
         """Size of the vocabulary.
@@ -187,12 +188,7 @@ class AddOneNGram:
         v = 0
         for token in self.model.counts.keys():
             if len(token) == 1:
-                v += 1
-
-        if self.model.n == 1 or self.model.n == 2:
-            v += 1  # Need add START or STOP char
-        else:
-            v += 2  # Need add START and STOP char
+                v += 1        
         return v
 
 
