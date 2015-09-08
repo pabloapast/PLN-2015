@@ -40,7 +40,11 @@ class NGram(object):
  
         tokens -- the n-gram or (n-1)-gram tuple.
         """
-        return self.counts[tuple(tokens)]
+        c = 0
+        key = tuple(tokens)
+        if key in self.counts:
+            c = self.counts[key]
+        return c
  
     def cond_prob(self, token, prev_tokens=None):
         """Conditional probability of a token.
@@ -179,15 +183,16 @@ class AddOneNGram:
         assert len(prev_tokens) == self.model.n - 1
 
         tokens = prev_tokens + [token]
+        #print(tokens, float((self.count(tuple(tokens))) + 1), self.count(tuple(prev_tokens)), self.V())
         return float((self.count(tuple(tokens))) + 1) / \
-               (self.model.counts[tuple(prev_tokens)] + self.V())
+                     (self.count(tuple(prev_tokens)) + self.V())
  
     def V(self):
         """Size of the vocabulary.
         """
         v = 0
         for token in self.model.counts.keys():
-            if len(token) == 1:
+            if len(token) == self.model.n - 1:
                 v += 1        
         return v
 

@@ -1,12 +1,14 @@
 """Train an n-gram model.
 
 Usage:
-  train.py -n <n> -i <file> -o <file>
+  train.py -n <n> [-m <model>] -o <file>
   train.py -h | --help
 
 Options:
   -n <n>        Order of the model.
-  -i <file>     Input corpus file.
+  -m <model>    Model to use [default: ngram]:
+                  ngram: Unsmoothed n-grams.
+                  addone: N-grams with add-one smoothing.
   -o <file>     Output model file.
   -h --help     Show this screen.
 """
@@ -16,7 +18,7 @@ import pickle
 from nltk.corpus import PlaintextCorpusReader
 from nltk.tokenize import RegexpTokenizer
 
-from ngram import NGram
+from ngram import NGram, AddOneNGram
 
 pattern = '''(?ix)    # set flag to allow verbose regexps
       (sr\.|sra\.|dr\.|dra\.)
@@ -32,13 +34,20 @@ if __name__ == '__main__':
 
     # load the data
     tokenizer = RegexpTokenizer(pattern)
-    corpus = PlaintextCorpusReader('../corpus', opts['-i'], 
+    corpus = PlaintextCorpusReader('./corpus', 'books_corpus.txt', 
                                    word_tokenizer=tokenizer)
     sents = corpus.sents()
 
     # train the model
     n = int(opts['-n'])
-    model = NGram(n, sents)
+    m = (opts['-m'])
+    model = None
+    if m == 'ngram':
+      model = NGram(n, sents)
+    elif m == 'addone':
+      model = AddOneNGram(n, sents)
+    else:
+      raise SystemExit('Input model error')
 
     # save it
     filename = opts['-o']
