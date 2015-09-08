@@ -197,29 +197,56 @@ class AddOneNGram:
         return v
 
 
-    class EvalModel:
-    
-        def __init__(self, model, test):
-            """
-            model -- n-gram model.
-            test -- list of sentences for test
-            """
-            self.model = model
-            self.test = test
-            self.M = len(((' ').join(test)).split(' '))
+class EvalModel:
 
-        def log_prob(self):
-            """ Log probability of the model
-            """
-            return sum([model.sent_log_prob(sent) for sent in self.test])
+    def __init__(self, model, test_sents):
+        """
+        model -- n-gram model.
+        test -- list of sentences for test
+        """
+        self.model = model
+        self.test_sents = test_sents
+        self.M = sum(len(sent) for sent in self.test_sents)
 
-        def cross_entropy(self):
-            """ Cross-Entropy or Average log probability of the model
-            """
-            return self.log_prob() / self.M
+    def log_prob(self):
+        """ Log probability of the model
+        """
+        return sum(self.model.sent_log_prob(sent) for sent in self.test_sents)
 
-        def perplexity(self):
-            """ Perplexity of the model
-            """
-            return 2 ** (- self.cross_entropy())
-            
+    def cross_entropy(self):
+        """ Cross-Entropy or Average log probability of the model
+        """
+        return self.log_prob() / self.M
+
+    def perplexity(self):
+        """ Perplexity of the model
+        """
+        return 2 ** (- self.cross_entropy())
+
+
+class InterpolatedNGram:
+ 
+    def __init__(self, n, sents, gamma=None, addone=True):
+        """
+        n -- order of the model.
+        sents -- list of sentences, each one being a list of tokens.
+        gamma -- interpolation hyper-parameter (if not given, estimate using
+            held-out data).
+        addone -- whether to use addone smoothing (default: True).
+        """
+        pass
+ 
+    def count(self, tokens):
+        """Count for an k-gram for k <= n.
+ 
+        tokens -- the k-gram tuple.
+        """
+        pass
+ 
+    def cond_prob(self, token, prev_tokens=None):
+        """Conditional probability of a token.
+ 
+        token -- the token.
+        prev_tokens -- the previous n-1 tokens (optional only if n = 1).
+        """
+        pass
