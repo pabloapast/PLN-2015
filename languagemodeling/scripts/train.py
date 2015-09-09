@@ -34,7 +34,7 @@ if __name__ == '__main__':
 
     # load the data
     tokenizer = RegexpTokenizer(pattern)
-    corpus = PlaintextCorpusReader('./corpus', 'books_corpus.txt', 
+    corpus = PlaintextCorpusReader('./corpus', 'books_corpus_train.txt',\
                                    word_tokenizer=tokenizer)
     sents = corpus.sents()
 

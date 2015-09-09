@@ -8,12 +8,22 @@ Options:
   -i <file>     Language model file.
   -h --help     Show this screen.
 """
+from docopt import docopt
 import pickle
+
+from nltk.corpus import PlaintextCorpusReader
+from nltk.tokenize import RegexpTokenizer
 
 from ngram import EvalModel
 
-WORKPATH = '/home/pablo/facu/2015/pln/PLN-2015'
-
+pattern = '''(?ix)    # set flag to allow verbose regexps
+      (sr\.|sra\.|dr\.|dra\.)
+    | ([A-Z]\.)+        # abbreviations, e.g. U.S.A.
+    | \w+(-\w+)*        # words with optional internal hyphens
+    | \$?\d+(\.\d+)?%?  # currency and percentages, e.g. $12.40, 82%
+    | \.\.\.            # ellipsis
+    | [][<>|\{}.,;"'“”«»¡!¿?():-_`]  # these are separate tokens; includes ], [
+'''
 
 if __name__ == '__main__':
     opts = docopt(__doc__)
@@ -29,13 +39,14 @@ if __name__ == '__main__':
     model = pickle.load(f)
     
     # Load test corpus
-    test = open(os.path.join(WORKPATH, 'corpus/books_corpus_test.txt'), 'r')
-    sents = test.read()
-    sents_list = sents.split('\n')[: - 1]
+    tokenizer = RegexpTokenizer(pattern)
+    test_corpus = PlaintextCorpusReader('./corpus', 'books_corpus_test.txt',\
+                                        word_tokenizer=tokenizer)
+    test_sents = test_corpus.sents()
 
     # Evaluating model
-    evalModel = EvalModel(model, sents_list)
+    evalModel = EvalModel(model, test_sents)
 
     print('Log-Probability', evalModel.log_prob())
-    print('Corss-Entropy', cross_entropy())
-    print('Perplexity', perplexity())
+    print('Corss-Entropy', evalModel.cross_entropy())
+    print('Perplexity', evalModel.perplexity())
