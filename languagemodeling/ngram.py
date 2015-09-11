@@ -17,14 +17,18 @@ class NGram(object):
         assert n > 0
         self.n = n
         self.counts = counts = defaultdict(int)
+        self.words = list()
 
         for sent in sents:
+            self.words += sent
             sent = ([START] * (n - 1)) + sent
             sent.append(STOP)
             for i in range(len(sent) - n + 1):
                 ngram = tuple(sent[i: i + n])
                 counts[ngram] += 1
                 counts[ngram[:-1]] += 1
+        self.words = list(set(self.words))
+
 
     def prob(self, token, prev_tokens=None):
         n = self.n
@@ -116,7 +120,7 @@ class NGramGenerator(object):
 
         for key, value in self.probs.items():
             self.sorted_probs[key] = sorted(list(value.items()),
-                                        key=lambda tup: tup[1], reverse=True)
+                                        key=lambda tup: (tup[1], tup[0]), reverse=True)
 
     def generate_sent(self):
         """Randomly generate a sentence."""
@@ -156,21 +160,7 @@ class NGramGenerator(object):
         return token
 
 
-class AddOneNGram:
- 
-    def __init__(self, n, sents):
-        """
-        n -- order of the model.
-        sents -- list of list of sentences, each one being a list of tokens.
-        """
-        self.model = NGram(n, sents)
- 
-    def count(self, tokens):
-        """Count for an n-gram or (n-1)-gram.
- 
-        tokens -- the n-gram or (n-1)-gram tuple.
-        """
-        return self.model.count(tokens)
+class AddOneNGram(NGram):
  
     def cond_prob(self, token, prev_tokens=None):
         """Conditional probability of a token.
@@ -180,21 +170,19 @@ class AddOneNGram:
         """
         if not prev_tokens:
             prev_tokens = []
-        assert len(prev_tokens) == self.model.n - 1
+        assert len(prev_tokens) == self.n - 1
 
         tokens = prev_tokens + [token]
-        #print(tokens, float((self.count(tuple(tokens))) + 1), self.count(tuple(prev_tokens)), self.V())
+
         return float((self.count(tuple(tokens))) + 1) / \
                      (self.count(tuple(prev_tokens)) + self.V())
  
     def V(self):
         """Size of the vocabulary.
         """
-        v = 0
-        for token in self.model.counts.keys():
-            if len(token) == self.model.n - 1:
-                v += 1        
-        return v
+        # lenght of the vocabulary plus </s>
+        print (self.words)
+        return len(self.words) + 1
 
 
 class EvalModel:

@@ -48,10 +48,10 @@ class TestNGramGenerator(TestCase):
             ('salmón',): {'.': 1.0},
         }
         sorted_probs = {
-            ('<s>',): [('el', 0.5), ('la', 0.5)],
+            ('<s>',): [('la', 0.5), ('el', 0.5)],
             ('el',): [('gato', 1.0)],
             ('gato',): [('come', 1.0)],
-            ('come',): [('pescado', 0.5), ('salmón', 0.5)],
+            ('come',): [('salmón', 0.5), ('pescado', 0.5)],
             ('pescado',): [('.', 1.0)],
             ('.',): [('</s>', 1.0)],
             ('la',): [('gata', 1.0)],
