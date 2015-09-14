@@ -17,18 +17,16 @@ class NGram(object):
         assert n > 0
         self.n = n
         self.counts = counts = defaultdict(int)
-        self.words = list()
+        self.words = set()
 
         for sent in sents:
-            self.words += sent
+            self.words = self.words.union(set(sent))
             sent = ([START] * (n - 1)) + sent
             sent.append(STOP)
             for i in range(len(sent) - n + 1):
                 ngram = tuple(sent[i: i + n])
                 counts[ngram] += 1
                 counts[ngram[:-1]] += 1
-        self.words = list(set(self.words))
-
 
     def prob(self, token, prev_tokens=None):
         n = self.n
@@ -161,6 +159,13 @@ class NGramGenerator(object):
 
 
 class AddOneNGram(NGram):
+
+    def __init__(self, n, sents):
+        """
+        n -- order of the model.
+        sents -- list of sentences, each one being a list of tokens.
+        """
+        NGram.__init__(self, n, sents)
  
     def cond_prob(self, token, prev_tokens=None):
         """Conditional probability of a token.
@@ -181,7 +186,6 @@ class AddOneNGram(NGram):
         """Size of the vocabulary.
         """
         # lenght of the vocabulary plus </s>
-        print (self.words)
         return len(self.words) + 1
 
 
@@ -223,18 +227,42 @@ class InterpolatedNGram:
         addone -- whether to use addone smoothing (default: True).
         """
         pass
+
+
+class BackOffNGram(AddOneNGram):
  
-    def count(self, tokens):
-        """Count for an k-gram for k <= n.
+    def __init__(self, n, sents, beta=None, addone=True):
+        """
+        Back-off NGram model with discounting as described by Michael Collins.
+ 
+        n -- order of the model.
+        sents -- list of sentences, each one being a list of tokens.
+        beta -- discounting hyper-parameter (if not given, estimate using
+            held-out data).
+        addone -- whether to use addone smoothing (default: True).
+        """
+        AddOneNGram.__init__(self, n, sents)
+        self.beta = beta
+        self.addone = addone
+ 
+    def A(self, tokens):
+        """Set of words with counts > 0 for a k-gram with 0 < k < n.
+ 
+        tokens -- the k-gram tuple.
+        """
+        a = set()
+
+ 
+    def alpha(self, tokens):
+        """Missing probability mass for a k-gram with 0 < k < n.
  
         tokens -- the k-gram tuple.
         """
         pass
  
-    def cond_prob(self, token, prev_tokens=None):
-        """Conditional probability of a token.
+    def denom(self, tokens):
+        """Normalization factor for a k-gram with 0 < k < n.
  
-        token -- the token.
-        prev_tokens -- the previous n-1 tokens (optional only if n = 1).
+        tokens -- the k-gram tuple.
         """
         pass
