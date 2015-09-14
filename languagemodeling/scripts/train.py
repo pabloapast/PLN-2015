@@ -42,12 +42,10 @@ if __name__ == '__main__':
     n = int(opts['-n'])
     m = (opts['-m'])
     model = None
-    if m == 'ngram':
-      model = NGram(n, sents)
-    elif m == 'addone':
+    if m == 'addone':
       model = AddOneNGram(n, sents)
     else:
-      raise SystemExit('Input model error')
+      model = NGram(n, sents)
 
     # save it
     filename = opts['-o']
