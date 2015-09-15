@@ -1,6 +1,6 @@
 # https://docs.python.org/3/library/collections.html
 from collections import defaultdict
-from math import log2   
+from math import floor, log2
 import random
 
 START = '<s>'
@@ -229,7 +229,7 @@ class InterpolatedNGram:
         pass
 
 
-class BackOffNGram(AddOneNGram):
+class BackOffNGram(NGram):
  
     def __init__(self, n, sents, beta=None, addone=True):
         """
@@ -241,9 +241,52 @@ class BackOffNGram(AddOneNGram):
             held-out data).
         addone -- whether to use addone smoothing (default: True).
         """
-        AddOneNGram.__init__(self, n, sents)
+        assert n > 0
+        self.n = n
+        self.counts = counts = defaultdict(int)
+        self.words = set()       
         self.beta = beta
         self.addone = addone
+
+        train = sents[: floor(len(sents) * 0.9)]
+        test = sents[floor(len(sents) * 0.9) :]
+        assert len(train) + len(test) == len(sents)
+        
+        for sent in train:
+            self.words = self.words.union(set(sent))
+            sent = ([START] * (n - 1)) + sent
+            sent.append(STOP)
+            for i in range(len(sent) - n + 1):
+                ngram = tuple(sent[i: i + n])
+                counts[ngram] += 1
+                for j in range(n):
+                    counts[ngram[:-j]] += 1
+
+        if not self.beta:
+            counts_test = defaultdict(int)
+            for sent in test:
+                sent = ([START] * (n - 1)) + sent
+                sent.append(STOP)
+                for i in range(len(sent) - n + 1):
+                    counts_test[tuple(sent[i: i + n])] += 1
+
+            betas = [x / 10 for x in range(1, 10)]
+            sum_log_probs = []
+            for b in betas:
+                self.beta = b
+                s = sum(count * log2(self.cond_prob(tokens[-1], tokens[:-1]))\
+                        for tokens, count in counts_test.items())
+                sum_log_probs.append(s)
+
+            self.beta = betas.index(max(sum_log_probs))
+
+
+    def disc_count(self, tokens):
+        """Dicounted Count for an n-gram
+ 
+        tokens -- the n-gram tuple.
+        """
+        return self.count(tokens) - self.beta
  
     def A(self, tokens):
         """Set of words with counts > 0 for a k-gram with 0 < k < n.
@@ -251,18 +294,55 @@ class BackOffNGram(AddOneNGram):
         tokens -- the k-gram tuple.
         """
         a = set()
-
+        for word in self.words:
+            if self.count(list(tokens).append(word)) > 0:
+                a.add(word)
+        return a
  
     def alpha(self, tokens):
         """Missing probability mass for a k-gram with 0 < k < n.
  
         tokens -- the k-gram tuple.
         """
-        pass
+        return 1 - sum(self.disc_count(tokens.append(word)) / self.count(tokens)\
+                       for word in self.A(tokens))
  
     def denom(self, tokens):
         """Normalization factor for a k-gram with 0 < k < n.
  
         tokens -- the k-gram tuple.
         """
-        pass
+        norm = -1
+        if len(tokens) == 1:
+            norm = sum(self.prob(token) for token in self.words if not token in self.A)
+        else:
+            norm = sum(self.cond_prob(token, tokens[1:]) for token in self.words\
+                       if not token in self.A(tokens))
+        assert norm >= 0
+        return norm
+
+    def prob(self, token, prev_tokens=None):
+        if not prev_tokens:
+            prev_tokens = []
+        tokens = prev_tokens + [token]
+        return self.count(tokens) / self.count(prev_tokens)
+
+    def cond_prob(self, token, prev_tokens=None):
+        """Conditional probability of a token.
+ 
+        token -- the token.
+        prev_tokens -- the previous n-1 tokens.
+        """
+        p = -1
+        if not prev_tokens:
+            p = self.count([token]) / self.count([])
+        elif token in self.A(prev_tokens):
+            p = self.disc_count(prev_tokens.append(token)) / self.count(prev_tokens)
+        else:
+            if len(prev_tokens) == 1:
+                p = self.alpha(prev_tokens) * (self.prob(token) / self.denom(prev_tokens))
+            else:
+                p = self.alpha(prev_tokens) * (self.cond_prob(token, prev_tokens[1:]) / \
+                    self.denom(prev_tokens))
+        assert p >= 0
+        return p
