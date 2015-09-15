@@ -14,19 +14,24 @@ class NGram(object):
         n -- order of the model.
         sents -- list of sentences, each one being a list of tokens.
         """
+        self.train = sents[: floor(len(sents) * 0.9)]
+        self.test = sents[floor(len(sents) * 0.9) :]
+        assert len(self.train) + len(self.test) == len(sents)
+
         assert n > 0
         self.n = n
         self.counts = counts = defaultdict(int)
-        self.words = set()
+        self.words = list()
 
-        for sent in sents:
-            self.words = self.words.union(set(sent))
+        for sent in self.train:
+            self.words += sent
             sent = ([START] * (n - 1)) + sent
             sent.append(STOP)
             for i in range(len(sent) - n + 1):
                 ngram = tuple(sent[i: i + n])
                 counts[ngram] += 1
                 counts[ngram[:-1]] += 1
+        self.words = set(self.words)
 
     def prob(self, token, prev_tokens=None):
         n = self.n
@@ -97,6 +102,24 @@ class NGram(object):
             else:
                 p += log2(p_i)
         return p
+
+    def M(self, test_sents):
+        return sum(len(sent) for sent in test_sents)
+
+    def log_prob(self, test_sents):
+        """ Log probability of the model
+        """
+        return sum(self.sent_log_prob(sent) for sent in test_sents)
+
+    def cross_entropy(self, test_sents):
+        """ Cross-Entropy or Average log probability of the model
+        """
+        return self.log_prob(test_sents) / self.M(test_sents)
+
+    def perplexity(self, test_sents):
+        """ Perplexity of the model
+        """
+        return 2 ** (- self.cross_entropy(test_sents))
 
 
 class NGramGenerator(object):
@@ -189,34 +212,7 @@ class AddOneNGram(NGram):
         return len(self.words) + 1
 
 
-class EvalModel:
-
-    def __init__(self, model, test_sents):
-        """
-        model -- n-gram model.
-        test -- list of sentences for test
-        """
-        self.model = model
-        self.test_sents = test_sents
-        self.M = sum(len(sent) for sent in self.test_sents)
-
-    def log_prob(self):
-        """ Log probability of the model
-        """
-        return sum(self.model.sent_log_prob(sent) for sent in self.test_sents)
-
-    def cross_entropy(self):
-        """ Cross-Entropy or Average log probability of the model
-        """
-        return self.log_prob() / self.M
-
-    def perplexity(self):
-        """ Perplexity of the model
-        """
-        return 2 ** (- self.cross_entropy())
-
-
-class InterpolatedNGram:
+class InterpolatedNGram(NGram):
  
     def __init__(self, n, sents, gamma=None, addone=True):
         """
@@ -226,7 +222,52 @@ class InterpolatedNGram:
             held-out data).
         addone -- whether to use addone smoothing (default: True).
         """
-        pass
+        # Train: 81% of sents
+        self.train = sents[: floor(len(sents) * 0.81)]  
+        # Development: 9% of sents, which is 10% of train
+        self.development = sents[floor(len(sents) * 0.81) :]
+        # Test: 10% of sents
+        self.test = sents[floor(len(sents) * 0.9) :]
+        assert len(self.train) + len(self.test) + len(self.development) == len(sents)
+        
+        self.n = n
+        assert n > 0
+
+        self.gamma = gamma
+        self.counts = counts = defaultdict(int)
+        self.words = list()
+
+        for sent in self.train:
+            self.words += sent
+            sent = ([START] * (n - 1)) + sent
+            sent.append(STOP)
+            for i in range(len(sent) - n + 1):
+                ngram = tuple(sent[i: i + n])
+                counts[ngram] += 1
+                for j in range(n):
+                    counts[ngram[:-j]] += 1
+        self.words = set(self.words)
+     
+        self.models = None
+        if addone:
+            self.models = [AddOneNGram(i, train) for i in range(1, self.n + 1)]
+        else:
+            self.models = [AddOneNGram(1, train)]  # AddOne for unigrams
+            self.models += [NGram(i, train) for i in range(2, self.n + 1)]
+
+        if not self.gamma:
+            gammas = [x / 10 for x in range(1, 50)]
+            tmp_perplexity = float('inf')
+            for g in gammas:
+                if self.perplexity(self.development) < tmp_perplexity:
+                    self.gamma = g
+                    tmp_perplexity = self.perplexity(self.development)
+                    print(self.gamma, tmp_perplexity)
+            print(self.gamma)
+
+
+
+
 
 
 class BackOffNGram(NGram):
@@ -263,22 +304,10 @@ class BackOffNGram(NGram):
                     counts[ngram[:-j]] += 1
 
         if not self.beta:
-            counts_test = defaultdict(int)
-            for sent in test:
-                sent = ([START] * (n - 1)) + sent
-                sent.append(STOP)
-                for i in range(len(sent) - n + 1):
-                    counts_test[tuple(sent[i: i + n])] += 1
-
+            model = NGram(self.n, train)
             betas = [x / 10 for x in range(1, 10)]
-            sum_log_probs = []
-            for b in betas:
-                self.beta = b
-                s = sum(count * log2(self.cond_prob(tokens[-1], tokens[:-1]))\
-                        for tokens, count in counts_test.items())
-                sum_log_probs.append(s)
-
-            self.beta = betas.index(max(sum_log_probs))
+            perplexity = float('inf')
+            #for b in betas:
 
 
     def disc_count(self, tokens):
@@ -320,12 +349,6 @@ class BackOffNGram(NGram):
                        if not token in self.A(tokens))
         assert norm >= 0
         return norm
-
-    def prob(self, token, prev_tokens=None):
-        if not prev_tokens:
-            prev_tokens = []
-        tokens = prev_tokens + [token]
-        return self.count(tokens) / self.count(prev_tokens)
 
     def cond_prob(self, token, prev_tokens=None):
         """Conditional probability of a token.
