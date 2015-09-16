@@ -254,6 +254,7 @@ class InterpolatedNGram(NGram):
         else:
             self.models = [AddOneNGram(1, train)]  # AddOne for unigrams
             self.models += [NGram(i, train) for i in range(2, self.n + 1)]
+        self.models.reverse()  # Order: Ngram, N-1gram, ..., 1gram
 
         if not self.gamma:
             gammas = [x / 10 for x in range(1, 50)]
@@ -264,6 +265,35 @@ class InterpolatedNGram(NGram):
                     tmp_perplexity = self.perplexity(self.development)
                     print(self.gamma, tmp_perplexity)
             print(self.gamma)
+
+    def set_lambdas(self, tokens):
+        lambdas = list()
+        if not prev_tokens:
+            l = 1  # Case for unigrams, lambda = 1
+            lambdas.append(l)
+        else:
+            for i in range(n - 1):
+                l = (1 - sum(lambdas)) * \
+                    (self.count(prev_tokens) / (self.count(prev_tokens) + self.gamma))
+                lambdas.append(l)
+            lambdas.append(1 - sum(lambdas))
+        return lambdas
+
+    def cond_prob(self, token, prev_tokens=None):
+        """Conditional probability of a token.
+ 
+        token -- the token.
+        prev_tokens -- the previous n-1 tokens (optional only if n = 1).
+        """
+        lambdas = self.set_lambdas(prev_tokens)
+        
+        p = 0
+        for i in range(len(lambdas)):
+            p += lambdas[i] * self.models.cond_prob(token, prev_tokens)
+
+        return p
+
+
 
 
 
