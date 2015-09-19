@@ -339,6 +339,12 @@ class BackOffNGram(NGram):
         """
         return self.count(tokens) - self.beta
 
+    def V(self):
+        """Size of the vocabulary.
+        """
+        # Lenght of the vocabulary + </s>
+        return len(self.words) + 1
+
     def prob(self, token, prev_tokens=None):
         if prev_tokens == None:
             prev_tokens = []
@@ -351,12 +357,6 @@ class BackOffNGram(NGram):
         else:
             p = self.count(tokens) / self.count(prev_tokens) 
         return p
-
-    def V(self):
-        """Size of the vocabulary.
-        """
-        # Lenght of the vocabulary + </s>
-        return len(self.words) + 1
 
     def A(self, tokens):
         """Set of words with counts > 0 for a k-gram with 0 < k < n.
@@ -373,18 +373,33 @@ class BackOffNGram(NGram):
         return 1 - sum(self.disc_count(tokens + [word]) / self.count(tokens)\
                        for word in self.A(tokens))
  
-    def denom(self, tokens):
+    def denom(self, tokens):  # FIXME TODO
         """Normalization factor for a k-gram with 0 < k < n.
  
         tokens -- the k-gram tuple.
         """
-        return 
+        pass
 
     def compute_alphas(self):
         for tokens in self.counts.keys():
             self.alphas[tokens] = self.alpha(tokens)
 
-    def compute_denoms(self):
-        for tokens in self.counts.keys():
-            self.denoms[tokens] = self.denom(tokens)            
+    def compute_denoms(self):  # FIXME TODO
+        pass
 
+    def cond_prob(self, token, prev_tokens=None):
+        """Conditional probability of a token.
+ 
+        token -- the token.
+        prev_tokens -- the previous n-1 tokens.
+        """
+        p = -1
+        if prev_tokens == None:
+            p = self.prob(token)
+        elif w in self.A(prev_tokens):
+            p = self.disc_count(prev_tokens + [token]) / self.count(prev_tokens)
+        else:
+            p = self.alphas(prev_tokens) * (cond_prob(token, prev_tokens[1:]) /\
+                                            self.denoms[prev_tokens])
+        assert p >= 0
+        return p
