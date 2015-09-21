@@ -27,6 +27,7 @@ class NGram(object):
                 ngram = tuple(sent[i: i + n])
                 counts[ngram] += 1
                 counts[ngram[:-1]] += 1
+        self.words.append(STOP)  # Vocabulary + </s>
         self.words = set(self.words)
 
     def prob(self, token, prev_tokens=None):
@@ -203,7 +204,7 @@ class AddOneNGram(NGram):
         """Size of the vocabulary.
         """
         # lenght of the vocabulary plus </s>
-        return len(self.words) + 1
+        return len(self.words)
 
 
 class InterpolatedNGram(NGram):
@@ -272,7 +273,7 @@ class InterpolatedNGram(NGram):
         lambdas = self.set_lambdas(prev_tokens)
         
         p = 0
-        if  not prev_tokens:
+        if prev_tokens == None:
             prev_tokens = []
         for i in range(len(lambdas)):
             p += lambdas[i] * self.models[i].cond_prob(token, prev_tokens[i :])
@@ -320,10 +321,15 @@ class BackOffNGram(NGram):
                     counts[ngram] += 1
                     if len(ngram) == 1:
                         counts[ngram[:-1]] += 1
+        self.words.append(STOP)  # Vocabulary + </s>
         self.words = set(self.words)
+
+        if self.beta == None:
+            self.beta = 0
 
         self.compute_alphas()
         self.compute_denoms()
+
 
     def count(self, tokens):
         """Count for an n-gram or (n-1)-gram.
@@ -342,8 +348,7 @@ class BackOffNGram(NGram):
     def V(self):
         """Size of the vocabulary.
         """
-        # Lenght of the vocabulary + </s>
-        return len(self.words) + 1
+        return len(self.words)
 
     def prob(self, token, prev_tokens=None):
         if prev_tokens == None:
@@ -363,29 +368,36 @@ class BackOffNGram(NGram):
  
         tokens -- the k-gram tuple.
         """
-        return [word for word in self.words if self.count([word] + tokens) > 0]
+        return {word for word in self.words\
+                if self.count(list(tokens) + [word]) > 0}
 
     def alpha(self, tokens):
         """Missing probability mass for a k-gram with 0 < k < n.
  
         tokens -- the k-gram tuple.
         """
-        return 1 - sum(self.disc_count(tokens + [word]) / self.count(tokens)\
-                       for word in self.A(tokens))
+        return 1 - sum(self.disc_count(list(tokens) + [word]) /\
+                       self.count(tokens) for word in self.A(tokens))
  
-    def denom(self, tokens):  # FIXME TODO
+    def denom(self, tokens):
         """Normalization factor for a k-gram with 0 < k < n.
  
         tokens -- the k-gram tuple.
         """
-        pass
+        return 1 - sum(self.cond_prob(word, tokens[1:])
+                       for word in self.A(tokens))
 
     def compute_alphas(self):
         for tokens in self.counts.keys():
             self.alphas[tokens] = self.alpha(tokens)
 
-    def compute_denoms(self):  # FIXME TODO
-        pass
+    def compute_denoms(self):
+        sorted_tokens = sorted(list(self.counts.keys()), key=lambda k: len(k))
+
+        for tokens in sorted_tokens:
+            if len(tokens) == self.n - 1:
+                self.denoms[tokens] = self.denom(tokens)
+                assert self.denoms[tokens] != 0
 
     def cond_prob(self, token, prev_tokens=None):
         """Conditional probability of a token.
@@ -393,13 +405,20 @@ class BackOffNGram(NGram):
         token -- the token.
         prev_tokens -- the previous n-1 tokens.
         """
+
         p = -1
-        if prev_tokens == None:
+        # if prev_tokens == None:
+        #     prev_tokens = []
+        # if token in self.A(prev_tokens):
+        #     p = self.disc_count(prev_tokens + [token]) / self.count(prev_tokens)
+        # else:
+        if prev_tokens == None or len(prev_tokens) == 0:
             p = self.prob(token)
-        elif w in self.A(prev_tokens):
-            p = self.disc_count(prev_tokens + [token]) / self.count(prev_tokens)
+        elif token in self.A(prev_tokens):
+            p = self.disc_count(list(prev_tokens) + [token]) / self.count(prev_tokens)
         else:
-            p = self.alphas(prev_tokens) * (cond_prob(token, prev_tokens[1:]) /\
-                                            self.denoms[prev_tokens])
+            p = self.alphas[tuple(prev_tokens)] *\
+                (self.cond_prob(token, prev_tokens[1:]) /\
+                 self.denoms.get(tuple(prev_tokens), 1))
         assert p >= 0
         return p
