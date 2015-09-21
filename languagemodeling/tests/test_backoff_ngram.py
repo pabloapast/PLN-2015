@@ -27,7 +27,7 @@ class TestBackoffNGram(TestCase):
             ('salmón',): {'.'},
         }
         for tokens, Aset in A.items():
-            self.assertEqual(model.A(tokens), Aset, tokens)
+            self.assertEqual(model.A(tokens), Aset, (tokens, model.A(tokens), Aset))
 
         # missing probability mass
         alpha = {
@@ -119,6 +119,16 @@ class TestBackoffNGram(TestCase):
         for model in models:
             for gram, c in counts.items():
                 self.assertEqual(model.count(gram), c)
+
+    def test_words(self):
+        words = {'.', 'come', 'el', 'gata', 'gato', 'la', 'pescado', 'salmón'}
+        models = [
+            BackOffNGram(1, self.sents, beta=0.5),
+            BackOffNGram(2, self.sents, beta=0.5),
+            BackOffNGram(3, self.sents, beta=0.5)
+        ]
+        for model in models:
+            self.assertEqual(model.words, words)
 
     def test_cond_prob_1gram_no_addone(self):
         model = BackOffNGram(1, self.sents, beta=0.5, addone=False)
