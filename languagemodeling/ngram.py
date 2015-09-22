@@ -313,38 +313,54 @@ class BackOffNGram(NGram):
             assert len(train) + len(test) == len(sents)
 
         for sent in train:
+            self.words += sent
             sent_c = sent.copy()
-            self.words += sent_c
+            sent_c.append(STOP)
             for i in range(1, n + 1):
-                if i == 1:
-                    sent_c.append(STOP)
-                else:
+                if i > 1:
                     sent_c = [START] + sent_c
                 for j in range(len(sent_c) - i + 1):
                     ngram = tuple(sent_c[j: j + i])
                     counts[ngram] += 1
                     prev = ngram[:-1]
-                    if i == 1 or prev == (START,):
+                    if i == 1 or prev == (START,) * (i - 1):
                         counts[prev] += 1
         self.words.append(STOP)  # Vocabulary + </s>
         self.words = set(self.words)
 
+
+        # for sent in train:
+        #     self.words += sent
+        #     sent.append(STOP)
+        #     for i in range(1, n + 1):
+        #         if i > 1:
+        #             sent = [START] + sent
+        #         for j in range(len(sent) - i + 1):
+        #             ngram = tuple(sent[j: j + i])
+        #             counts[ngram] += 1
+        #             prev = ngram[:-1]
+        #             if i == 1 or prev == (START,)*(i-1):
+        #                 counts[prev] += 1
+        # self.words.append(STOP)  # Vocabulary + </s>
+        # self.words = set(self.words)
+
         self.prevs = sorted([k for k in self.counts.keys()\
                              if 0 < len(k) < self.n and not STOP in k],\
                             key=lambda k: len(k))
-        # print(self.prevs)
+        # print('Prevs =', self.prevs, '\n\n')
         # print(self.counts)
 
         if self.beta == None:
             self.beta = 0
 
-        # print(self.counts)
+        # print('Counts = ', self.counts, '\n')
         self.compute_A()
-        # print('As =', self.As)
+        # print('As =', self.As, '\n')
         self.compute_alphas()
-        # print('alphas', list(self.alphas.keys()))
+        # import pdb; pdb.set_trace()
+        # print('alphas =', self.alphas, '\n')
         self.compute_denoms()
-        # print(self.denoms)
+        # print('denoms =', self.denoms, '\n')
 
     def disc_count(self, tokens):
         """Dicounted Count for an n-gram
@@ -376,29 +392,31 @@ class BackOffNGram(NGram):
  
         tokens -- the k-gram tuple.
         """
+        tokens = list(tokens)
         return {word for word in self.words\
-                if self.count(list(tokens) + [word]) > 0}
+                if self.count(tokens + [word]) > 0}
 
     def alpha(self, tokens):
         """Missing probability mass for a k-gram with 0 < k < n.
  
         tokens -- the k-gram tuple.
         """
-        return 1 - sum(self.disc_count(list(tokens) + [word]) /\
-               self.counts.get(tokens, 1) for word in self.As[tuple(tokens)])
+        tokens = list(tokens)
+        print(tokens, self.counts.get(tuple(tokens)), [self.disc_count(tokens + [word]) for word in self.As[tuple(tokens)]])
+        return 1 - sum(self.disc_count(tokens + [word]) / self.counts.get(tuple(tokens), 1) for word in self.As[tuple(tokens)])
  
     def denom(self, tokens):
         """Normalization factor for a k-gram with 0 < k < n.
  
         tokens -- the k-gram tuple.
         """
-        return 1 - sum(self.cond_prob(word, tokens[1:])
-                       for word in self.As[tuple(tokens)])
+        tokens = list(tokens)
+        return 1 - sum(self.cond_prob(word, tokens[1:]) for word in self.As[tuple(tokens)])
 
     def compute_A(self):
         for tokens in self.prevs:
             self.As[tokens] = self.A(tokens)
-            assert self.As[tokens] != set(), (tokens, self.As)
+            assert self.As[tokens] != set(), tokens
 
     def compute_alphas(self):
         for tokens in self.prevs:
