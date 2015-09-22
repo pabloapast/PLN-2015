@@ -402,8 +402,9 @@ class BackOffNGram(NGram):
         tokens -- the k-gram tuple.
         """
         tokens = list(tokens)
-        print(tokens, self.counts.get(tuple(tokens)), [self.disc_count(tokens + [word]) for word in self.As[tuple(tokens)]])
-        return 1 - sum(self.disc_count(tokens + [word]) / self.counts.get(tuple(tokens), 1) for word in self.As[tuple(tokens)])
+        # print(tokens, self.counts.get(tuple(tokens)), [self.disc_count(tokens + [word]) for word in self.As[tuple(tokens)]])
+        return 1 - sum(self.disc_count(tokens + [word]) /\
+            self.counts.get(tuple(tokens), 1) for word in self.As[tuple(tokens)])
  
     def denom(self, tokens):
         """Normalization factor for a k-gram with 0 < k < n.
@@ -424,9 +425,10 @@ class BackOffNGram(NGram):
             assert self.alphas[tokens] >= 0, (tokens, self.alphas[tokens])
 
     def compute_denoms(self):
-        for tokens in self.prevs:           
-            self.denoms[tokens] = self.denom(tokens)
-            assert self.denoms[tokens] > 0, (tokens, self.denoms[tokens])
+        for tokens in self.prevs:
+            if self.denom(tokens) != 0:
+                self.denoms[tokens] = self.denom(tokens)
+            # assert self.denoms[tokens] > 0, (tokens, self.denoms[tokens])
 
     def cond_prob(self, token, prev_tokens=None):
         """Conditional probability of a token.
@@ -446,7 +448,7 @@ class BackOffNGram(NGram):
         elif token in self.As.get(tuple(prev_tokens), {}):
             p = self.disc_count(list(prev_tokens) + [token]) / self.counts.get(tuple(prev_tokens), 1)
         else:
-            p = self.alphas[tuple(prev_tokens)] *\
+            p = self.alphas.get(tuple(prev_tokens), 0) *\
                 (self.cond_prob(token, prev_tokens[1:]) /\
                  self.denoms.get(tuple(prev_tokens), 1))
         if p < 0:
