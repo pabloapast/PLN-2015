@@ -351,7 +351,23 @@ class BackOffNGram(NGram):
         # print(self.counts)
 
         if self.beta == None:
-            self.beta = 0
+            # Beta aproximation
+            betas = [x / 100 for x in range(0, 100)]
+            min_perplexity = float('inf')
+            min_beta = None
+            for b in betas:
+                self.beta = b
+                
+                self.compute_alphas()
+                self.compute_denoms()
+
+                if self.perplexity(test) < min_perplexity:
+                    min_perplexity = self.perplexity(test)
+                    min_beta = self.beta
+                print(self.beta, self.perplexity(test))
+            self.beta = min_beta
+            assert self.beta != None
+            print('-- Beta --', self.beta)
 
         # print('Counts = ', self.counts, '\n')
         self.compute_A()
@@ -421,14 +437,14 @@ class BackOffNGram(NGram):
 
     def compute_alphas(self):
         for tokens in self.prevs:
-            self.alphas[tokens] = self.alpha(tokens)
-            assert self.alphas[tokens] >= 0, (tokens, self.alphas[tokens])
+            if self.alpha(tokens) != 0:
+                self.alphas[tokens] = self.alpha(tokens)
+            # assert self.alphas[tokens] >= 0, (tokens, self.alphas[tokens])
 
     def compute_denoms(self):
         for tokens in self.prevs:
             if self.denom(tokens) != 0:
                 self.denoms[tokens] = self.denom(tokens)
-            # assert self.denoms[tokens] > 0, (tokens, self.denoms[tokens])
 
     def cond_prob(self, token, prev_tokens=None):
         """Conditional probability of a token.
@@ -436,13 +452,8 @@ class BackOffNGram(NGram):
         token -- the token.
         prev_tokens -- the previous n-1 tokens.
         """
-
         p = -1
-        # if prev_tokens == None:
-        #     prev_tokens = []
-        # if token in self.A(prev_tokens):
-        #     p = self.disc_count(prev_tokens + [token]) / self.count(prev_tokens)
-        # else:
+
         if prev_tokens == None or len(prev_tokens) == 0:
             p = self.prob(token)
         elif token in self.As.get(tuple(prev_tokens), {}):
@@ -451,7 +462,6 @@ class BackOffNGram(NGram):
             p = self.alphas.get(tuple(prev_tokens), 0) *\
                 (self.cond_prob(token, prev_tokens[1:]) /\
                  self.denoms.get(tuple(prev_tokens), 1))
-        if p < 0:
-            print(prev_tokens, token, p)
+
         assert p >= 0
         return p
