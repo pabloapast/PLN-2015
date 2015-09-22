@@ -301,6 +301,7 @@ class BackOffNGram(NGram):
         self.words = list()
         self.alphas = defaultdict(int)
         self.denoms = defaultdict(int)
+        self.As = defaultdict(set)
         train = sents
         test = None
         
@@ -312,31 +313,38 @@ class BackOffNGram(NGram):
             assert len(train) + len(test) == len(sents)
 
         for sent in train:
-            self.words += sent
+            sent_c = sent.copy()
+            self.words += sent_c
             for i in range(1, n + 1):
-                sent = ([START] * (i - 1)) + sent
-                sent.append(STOP)
-                for j in range(len(sent) - i + 1):
-                    ngram = tuple(sent[j: j + i])
+                if i == 1:
+                    sent_c.append(STOP)
+                else:
+                    sent_c = [START] + sent_c
+                for j in range(len(sent_c) - i + 1):
+                    ngram = tuple(sent_c[j: j + i])
                     counts[ngram] += 1
-                    if len(ngram) == 1:
-                        counts[ngram[:-1]] += 1
+                    prev = ngram[:-1]
+                    if i == 1 or prev == (START,):
+                        counts[prev] += 1
         self.words.append(STOP)  # Vocabulary + </s>
         self.words = set(self.words)
+
+        self.prevs = sorted([k for k in self.counts.keys()\
+                             if 0 < len(k) < self.n and not STOP in k],\
+                            key=lambda k: len(k))
+        # print(self.prevs)
+        # print(self.counts)
 
         if self.beta == None:
             self.beta = 0
 
+        # print(self.counts)
+        self.compute_A()
+        # print('As =', self.As)
         self.compute_alphas()
+        # print('alphas', list(self.alphas.keys()))
         self.compute_denoms()
-
-
-    def count(self, tokens):
-        """Count for an n-gram or (n-1)-gram.
- 
-        tokens -- the n-gram or (n-1)-gram tuple.
-        """
-        return self.counts.get(tuple(tokens), 0)
+        # print(self.denoms)
 
     def disc_count(self, tokens):
         """Dicounted Count for an n-gram
@@ -377,7 +385,7 @@ class BackOffNGram(NGram):
         tokens -- the k-gram tuple.
         """
         return 1 - sum(self.disc_count(list(tokens) + [word]) /\
-                       self.count(tokens) for word in self.A(tokens))
+               self.counts.get(tokens, 1) for word in self.As[tuple(tokens)])
  
     def denom(self, tokens):
         """Normalization factor for a k-gram with 0 < k < n.
@@ -385,19 +393,22 @@ class BackOffNGram(NGram):
         tokens -- the k-gram tuple.
         """
         return 1 - sum(self.cond_prob(word, tokens[1:])
-                       for word in self.A(tokens))
+                       for word in self.As[tuple(tokens)])
+
+    def compute_A(self):
+        for tokens in self.prevs:
+            self.As[tokens] = self.A(tokens)
+            assert self.As[tokens] != set(), (tokens, self.As)
 
     def compute_alphas(self):
-        for tokens in self.counts.keys():
+        for tokens in self.prevs:
             self.alphas[tokens] = self.alpha(tokens)
+            assert self.alphas[tokens] >= 0, (tokens, self.alphas[tokens])
 
     def compute_denoms(self):
-        sorted_tokens = sorted(list(self.counts.keys()), key=lambda k: len(k))
-
-        for tokens in sorted_tokens:
-            if len(tokens) == self.n - 1:
-                self.denoms[tokens] = self.denom(tokens)
-                assert self.denoms[tokens] != 0
+        for tokens in self.prevs:           
+            self.denoms[tokens] = self.denom(tokens)
+            assert self.denoms[tokens] > 0, (tokens, self.denoms[tokens])
 
     def cond_prob(self, token, prev_tokens=None):
         """Conditional probability of a token.
@@ -414,11 +425,13 @@ class BackOffNGram(NGram):
         # else:
         if prev_tokens == None or len(prev_tokens) == 0:
             p = self.prob(token)
-        elif token in self.A(prev_tokens):
-            p = self.disc_count(list(prev_tokens) + [token]) / self.count(prev_tokens)
+        elif token in self.As.get(tuple(prev_tokens), {}):
+            p = self.disc_count(list(prev_tokens) + [token]) / self.counts.get(tuple(prev_tokens), 1)
         else:
             p = self.alphas[tuple(prev_tokens)] *\
                 (self.cond_prob(token, prev_tokens[1:]) /\
                  self.denoms.get(tuple(prev_tokens), 1))
+        if p < 0:
+            print(prev_tokens, token, p)
         assert p >= 0
         return p
