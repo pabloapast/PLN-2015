@@ -14,8 +14,6 @@ import pickle
 from nltk.corpus import PlaintextCorpusReader
 from nltk.tokenize import RegexpTokenizer
 
-from ngram import EvalModel
-
 pattern = '''(?ix)    # set flag to allow verbose regexps
       (sr\.|sra\.|dr\.|dra\.)
     | ([A-Z]\.)+        # abbreviations, e.g. U.S.A.
@@ -44,9 +42,9 @@ if __name__ == '__main__':
                                         word_tokenizer=tokenizer)
     test_sents = test_corpus.sents()
 
-    # Evaluating model
-    evalModel = EvalModel(model, test_sents)
-
-    print('Log-Probability', evalModel.log_prob())
-    print('Corss-Entropy', evalModel.cross_entropy())
-    print('Perplexity', evalModel.perplexity())
+    # Eval
+    model.compute_M(test_sents)
+    print(str(model.n) + '-grama: ')
+    print('  Log-Probability', model.log_prob(test_sents))
+    print('  Corss-Entropy', model.cross_entropy(test_sents))
+    print('  Perplexity', model.perplexity(test_sents))
