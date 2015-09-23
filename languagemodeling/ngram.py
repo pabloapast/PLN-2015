@@ -30,7 +30,7 @@ class NGram(object):
                 counts[ngram] += 1
                 counts[ngram[:-1]] += 1
         self.words.append(STOP)  # Vocabulary + </s>
-        self.words = set(self.words)
+        self.words = set(self.words)  # Convert to set
 
     def prob(self, token, prev_tokens=None):
         n = self.n
@@ -199,7 +199,7 @@ class AddOneNGram(NGram):
 
         tokens = prev_tokens + [token]
 
-        return float((self.count(tuple(tokens))) + 1) / \
+        return float((self.count(tuple(tokens))) + 1) /\
                      (self.count(tuple(prev_tokens)) + self.V())
  
     def V(self):
@@ -219,6 +219,8 @@ class InterpolatedNGram(NGram):
             held-out data).
         addone -- whether to use addone smoothing (default: True).
         """
+        start_time = time.time()
+        
         assert n > 0
         self.n = n
 
@@ -239,32 +241,38 @@ class InterpolatedNGram(NGram):
             self.models = [NGram(i, train) for i in range(1, self.n + 1)]
         self.models.reverse()  # Order: Ngram, N-1gram, ..., 1gram
 
-        if self.gamma == None:
+        if self.gamma == None and self.n > 1:
             # Gamma aproximation
             gammas = [x for x in range(0, 1000, 100)]
             min_perplexity = float('inf')
             min_gamma = None
-            self.compute_M(test)
+            self.compute_M(test)  # Sum of len of all sentences in test
             for g in gammas:
                 self.gamma = g
                 if self.perplexity(test) < min_perplexity:
                     min_perplexity = self.perplexity(test)
                     min_gamma = self.gamma
-                print('gamma =',self.gamma, ' - ', 'perplexity = ', self.perplexity(test))
+                print('Gamma = %f - Perplexity = %f' % (self.gamma,\
+                      self.perplexity(test)))
             self.gamma = min_gamma
             assert self.gamma != None
-            print('-- Gamma --', self.gamma)
+            print('-- Gamma -- %f' % self.gamma)
+
+        print("--- %s seconds ---" % (time.time() - start_time))
 
     def set_lambdas(self, tokens):
         lambdas = list()
+
         # Lambdas for Ngram, N-1gram, ..., 2gram
         for i in range(self.n - 1):
             l = (1 - sum(lambdas)) * (self.models[i].count(tokens[i :]) /\
                 (self.models[i].count(tokens[i :]) + self.gamma))
             lambdas.append(l)
+        
         # Lambda for 1gram
         l = (1 - sum(lambdas))
         lambdas.append(l)
+        
         return lambdas
 
     def cond_prob(self, token, prev_tokens=None):
@@ -297,6 +305,7 @@ class BackOffNGram(NGram):
         addone -- whether to use addone smoothing (default: True).
         """
         start_time = time.time()
+
         assert n > 0
         self.n = n
         self.beta = beta
@@ -316,6 +325,7 @@ class BackOffNGram(NGram):
             test = sents[floor(len(sents) * 0.9) :]
             assert len(train) + len(test) == len(sents)
 
+        # Compute counts, vocabulary and A
         for sent in train:
             self.words += sent
             sent_c = sent.copy()
@@ -330,47 +340,41 @@ class BackOffNGram(NGram):
                     self.As[prev].add(ngram[-1])
                     if i == 1 or prev == (START,) * (i - 1):
                         counts[prev] += 1
+
         self.words.append(STOP)  # Vocabulary + </s>
-        self.words = set(self.words)
+        self.words = set(self.words)  # Convert to set
 
-        self.prevs = sorted([k for k in self.counts.keys()\
-                             if 0 < len(k) < self.n and not STOP in k],\
-                            key=lambda k: len(k))
+        # Possible previous tokens
+        self.prevs = [k for k in self.counts.keys()\
+                      if 0 < len(k) < self.n and not STOP in k]
 
-        # print('Prevs =', self.prevs, '\n\n')
-        # print(self.counts)
-
-        # self.compute_A()
-
+        # Compute beta
         if self.beta == None and self.n > 1:
             # Beta aproximation
             betas = [x / 100 for x in range(70, 100, 3)]
             min_perplexity = float('inf')
             min_beta = None
-            self.compute_M(test)
+            self.compute_M(test)  # Sum of len of all sentences in test
             for b in betas:
                 self.beta = b
-                
+                # Update alphas and denoms with new beta
                 self.compute_alphas()
                 self.compute_denoms()
-
                 if self.perplexity(test) < min_perplexity:
                     min_perplexity = self.perplexity(test)
                     min_beta = self.beta
-                print('self.beta =',self.beta, ' - ',
-                    'self.perplexity(test) = ', self.perplexity(test))
+                print('Beta = %f - Perplexity = %f' %\
+                      (self.beta, self.perplexity(test)))
             self.beta = min_beta
+            
             assert self.beta != None
             print('-- Beta --', self.beta)
 
-        # print('Counts = ', self.counts, '\n')
-        # self.compute_A()
-        # print('As =', self.As, '\n')
+        # Compute alphas and denoms with the definitive value of beta
         self.compute_alphas()
-        # import pdb; pdb.set_trace()
-        # print('alphas =', self.alphas, '\n')
         self.compute_denoms()
-        # print('denoms =', self.denoms, '\n')
+
+        # Time of initialization
         print("--- %s seconds ---" % (time.time() - start_time))
 
     def disc_count(self, tokens):
@@ -391,11 +395,12 @@ class BackOffNGram(NGram):
         tokens = prev_tokens + [token]
 
         p = 0
-        # Caso para addone en unigrama
+        # If addone is True use this only for unigrams
         if len(prev_tokens) == 0 and self.addone:
             p = (self.count(tokens) + 1) / (self.count(prev_tokens) + self.V())
         else:
             p = self.count(tokens) / self.count(prev_tokens) 
+        
         return p
 
     def A(self, tokens):
@@ -404,7 +409,7 @@ class BackOffNGram(NGram):
         tokens -- the k-gram tuple.
         """
         tokens = list(tokens)
-        # words_list = [word for word in self.words if self.count(tokens + [word]) > 0]
+
         return {word for word in self.words if self.count(tokens + [word]) > 0}
 
     def alpha(self, tokens):
@@ -413,13 +418,8 @@ class BackOffNGram(NGram):
         tokens -- the k-gram tuple.
         """
         tokens = list(tokens)
-        # print(tokens, self.counts.get(tuple(tokens)), [self.disc_count(tokens + [word]) for word in self.As[tuple(tokens)]])
-        # if 1 < sum(self.disc_count(tokens + [word]) / self.counts.get(tuple(tokens), 0) for word in self.As[tuple(tokens)]):
-        #     for word in self.As[tuple(tokens)]:
-        #         print(self.As[tuple(tokens)], tokens, word, self.disc_count(tokens + [word]),\
-        #               self.counts.get(tuple(tokens), 0))
-        #         print([self.disc_count(tokens + [word]) / self.counts.get(tuple(tokens), 0) for word in self.As[tuple(tokens)]])
-        return 1 - sum(self.disc_count(tokens + [word]) / self.count(tokens) for word in self.As[tuple(tokens)])
+        # return 1 - sum(self.disc_count(tokens + [word]) / self.count(tokens) for word in self.As[tuple(tokens)])
+        return (self.beta * len(self.As[tuple(tokens)])) / self.count(tokens)
  
     def denom(self, tokens):
         """Normalization factor for a k-gram with 0 < k < n.
@@ -427,18 +427,15 @@ class BackOffNGram(NGram):
         tokens -- the k-gram tuple.
         """
         tokens = list(tokens)
-        return 1 - sum(self.cond_prob(word, tokens[1:]) for word in self.As[tuple(tokens)])
 
-    def compute_A(self):
-        for tokens in self.prevs:
-            self.As[tokens] = self.A(tokens)
-            # assert self.As[tokens] != set(), tokens
+        return 1 - sum(self.cond_prob(word, tokens[1:]) for word in self.As[tuple(tokens)])
 
     def compute_alphas(self):
         for tokens in self.prevs:
             self.alphas[tokens] = self.alpha(tokens)
-            if abs(self.alphas[tokens]) < 1e-10:
-                self.alphas[tokens] = 0
+            
+            # if abs(self.alphas[tokens]) < 1e-10:
+                # self.alphas[tokens] = 0
             assert self.alphas[tokens] >= 0, (tokens, self.alphas[tokens])
 
     def compute_denoms(self):
