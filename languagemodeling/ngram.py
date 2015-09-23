@@ -18,9 +18,7 @@ class NGram(object):
         self.n = n
         self.counts = counts = defaultdict(int)
         self.words = list()
-        self.M
-        self.log_prob
-        self.cross_entropy
+        self.M = 0
 
         for sent in sents:
             self.words += sent
@@ -100,21 +98,23 @@ class NGram(object):
                 p += log2(p_i)
         return p
 
-    def compute_log_prob(self, test_sents):
-        self.log_prob = sum(self.sent_log_prob(sent) for sent in test_sents)
-
     def compute_M(self, test_sents):
         self.M = sum(len(sent) for sent in test_sents)
 
-    def compute_cross_entropy(self):
+    def log_prob(self, test_sents):
+        """ Log probability of the model
+        """
+        return sum(self.sent_log_prob(sent) for sent in test_sents)
+
+    def cross_entropy(self, test_sents):
         """ Cross-Entropy or Average log probability of the model
         """
-        self.cross_entropy = self.log_prob / self.M
+        return self.log_prob(test_sents) / self.M
 
-    def perplexity(self):
+    def perplexity(self, test_sents):
         """ Perplexity of the model
         """
-        return 2 ** (- self.cross_entropy)
+        return 2 ** (- self.cross_entropy(test_sents))
 
 
 class NGramGenerator(object):
@@ -240,15 +240,16 @@ class InterpolatedNGram(NGram):
 
         if self.gamma == None:
             # Gamma aproximation
-            gammas = [x for x in range(0, 100000, 10000)]
+            gammas = [x for x in range(0, 1000, 100)]
             min_perplexity = float('inf')
             min_gamma = None
+            self.compute_M(test)
             for g in gammas:
                 self.gamma = g
-                print(self.gamma, min_gamma, self.perplexity(test), min_perplexity)
                 if self.perplexity(test) < min_perplexity:
                     min_perplexity = self.perplexity(test)
                     min_gamma = self.gamma
+                print('gamma =',self.gamma, ' - ', 'perplexity = ', self.perplexity(test))
             self.gamma = min_gamma
             assert self.gamma != None
             print('-- Gamma --', self.gamma)
@@ -348,14 +349,18 @@ class BackOffNGram(NGram):
         self.prevs = sorted([k for k in self.counts.keys()\
                              if 0 < len(k) < self.n and not STOP in k],\
                             key=lambda k: len(k))
+
         # print('Prevs =', self.prevs, '\n\n')
         # print(self.counts)
 
+        # self.compute_A()
+
         if self.beta == None:
             # Beta aproximation
-            betas = [x / 100 for x in range(0, 100)]
+            betas = [x / 10 for x in range(0, 10)]
             min_perplexity = float('inf')
             min_beta = None
+            self.compute_M(test)
             for b in betas:
                 self.beta = b
                 
@@ -365,13 +370,14 @@ class BackOffNGram(NGram):
                 if self.perplexity(test) < min_perplexity:
                     min_perplexity = self.perplexity(test)
                     min_beta = self.beta
-                print(self.beta, self.perplexity(test))
+                print('self.beta =',self.beta, ' - ',
+                    'self.perplexity(test) = ', self.perplexity(test))
             self.beta = min_beta
             assert self.beta != None
             print('-- Beta --', self.beta)
 
         # print('Counts = ', self.counts, '\n')
-        self.compute_A()
+        # self.compute_A()
         # print('As =', self.As, '\n')
         self.compute_alphas()
         # import pdb; pdb.set_trace()
@@ -410,8 +416,8 @@ class BackOffNGram(NGram):
         tokens -- the k-gram tuple.
         """
         tokens = list(tokens)
-        return {word for word in self.words\
-                if self.count(tokens + [word]) > 0}
+        # words_list = [word for word in self.words if self.count(tokens + [word]) > 0]
+        return {word for word in self.words if self.count(tokens + [word]) > 0}
 
     def alpha(self, tokens):
         """Missing probability mass for a k-gram with 0 < k < n.
@@ -421,7 +427,7 @@ class BackOffNGram(NGram):
         tokens = list(tokens)
         # print(tokens, self.counts.get(tuple(tokens)), [self.disc_count(tokens + [word]) for word in self.As[tuple(tokens)]])
         return 1 - sum(self.disc_count(tokens + [word]) /\
-            self.counts.get(tuple(tokens), 1) for word in self.As[tuple(tokens)])
+            self.counts.get(tuple(tokens), 1) for word in self.A(tokens))
  
     def denom(self, tokens):
         """Normalization factor for a k-gram with 0 < k < n.
@@ -429,12 +435,12 @@ class BackOffNGram(NGram):
         tokens -- the k-gram tuple.
         """
         tokens = list(tokens)
-        return 1 - sum(self.cond_prob(word, tokens[1:]) for word in self.As[tuple(tokens)])
+        return 1 - sum(self.cond_prob(word, tokens[1:]) for word in self.A(tokens))
 
     def compute_A(self):
         for tokens in self.prevs:
             self.As[tokens] = self.A(tokens)
-            assert self.As[tokens] != set(), tokens
+            # assert self.As[tokens] != set(), tokens
 
     def compute_alphas(self):
         for tokens in self.prevs:
@@ -457,8 +463,9 @@ class BackOffNGram(NGram):
 
         if prev_tokens == None or len(prev_tokens) == 0:
             p = self.prob(token)
-        elif token in self.As.get(tuple(prev_tokens), {}):
-            p = self.disc_count(list(prev_tokens) + [token]) / self.counts.get(tuple(prev_tokens), 1)
+        elif token in self.A(prev_tokens):
+            p = self.disc_count(list(prev_tokens) + [token]) /\
+                self.counts.get(tuple(prev_tokens), 1)
         else:
             p = self.alphas.get(tuple(prev_tokens), 0) *\
                 (self.cond_prob(token, prev_tokens[1:]) /\
