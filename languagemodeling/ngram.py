@@ -18,6 +18,9 @@ class NGram(object):
         self.n = n
         self.counts = counts = defaultdict(int)
         self.words = list()
+        self.M
+        self.log_prob
+        self.cross_entropy
 
         for sent in sents:
             self.words += sent
@@ -97,23 +100,21 @@ class NGram(object):
                 p += log2(p_i)
         return p
 
-    def M(self, test_sents):
-        return sum(len(sent) for sent in test_sents)
+    def compute_log_prob(self, test_sents):
+        self.log_prob = sum(self.sent_log_prob(sent) for sent in test_sents)
 
-    def log_prob(self, test_sents):
-        """ Log probability of the model
-        """
-        return sum(self.sent_log_prob(sent) for sent in test_sents)
+    def compute_M(self, test_sents):
+        self.M = sum(len(sent) for sent in test_sents)
 
-    def cross_entropy(self, test_sents):
+    def compute_cross_entropy(self):
         """ Cross-Entropy or Average log probability of the model
         """
-        return self.log_prob(test_sents) / self.M(test_sents)
+        self.cross_entropy = self.log_prob / self.M
 
-    def perplexity(self, test_sents):
+    def perplexity(self):
         """ Perplexity of the model
         """
-        return 2 ** (- self.cross_entropy(test_sents))
+        return 2 ** (- self.cross_entropy)
 
 
 class NGramGenerator(object):
@@ -239,15 +240,15 @@ class InterpolatedNGram(NGram):
 
         if self.gamma == None:
             # Gamma aproximation
-            gammas = [x for x in range(0, 50000, 500)]
+            gammas = [x for x in range(0, 100000, 10000)]
             min_perplexity = float('inf')
             min_gamma = None
             for g in gammas:
                 self.gamma = g
+                print(self.gamma, min_gamma, self.perplexity(test), min_perplexity)
                 if self.perplexity(test) < min_perplexity:
                     min_perplexity = self.perplexity(test)
                     min_gamma = self.gamma
-                print(self.gamma, self.perplexity(test))
             self.gamma = min_gamma
             assert self.gamma != None
             print('-- Gamma --', self.gamma)
