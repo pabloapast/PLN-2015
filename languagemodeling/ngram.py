@@ -65,7 +65,7 @@ class NGram(object):
         if n == 1:  # Caso para unigramas
             p = self.prob(token)
         else:
-            assert prev_tokens is None
+            assert prev_tokens is not None
             if self.count(prev_tokens) > 0:
                 p = self.prob(token, prev_tokens)
             else:
