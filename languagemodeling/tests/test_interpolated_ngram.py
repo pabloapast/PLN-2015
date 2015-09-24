@@ -28,12 +28,12 @@ class TestInterpolatedNGram(TestCase):
             ('salmón',): 1,
         }
         for gram, c in counts.items():
-            self.assertEqual(model.models[0].count(gram), c, gram)
+            self.assertEqual(model.count(gram), c, gram)
 
     def test_count_2gram(self):
         ngram = InterpolatedNGram(2, self.sents, gamma=1.0)
 
-        counts1gram = {
+        counts = {
             (): 12,
             ('el',): 1,
             ('gato',): 1,
@@ -41,18 +41,6 @@ class TestInterpolatedNGram(TestCase):
             ('pescado',): 1,
             ('.',): 2,
             ('</s>',): 2,
-            ('la',): 1,
-            ('gata',): 1,
-            ('salmón',): 1,
-        }
-
-        counts2gram = {
-            ('<s>',): 2,
-            ('el',): 1,
-            ('gato',): 1,
-            ('come',): 2,
-            ('pescado',): 1,
-            ('.',): 2,
             ('la',): 1,
             ('gata',): 1,
             ('salmón',): 1,
@@ -68,12 +56,8 @@ class TestInterpolatedNGram(TestCase):
             ('come', 'salmón'): 1,
             ('salmón', '.'): 1,
         }
-        
-        for gram, c in counts1gram.items():
-            self.assertEqual(ngram.models[1].count(gram), c, gram)
-
-        for gram, c in counts2gram.items():
-            self.assertEqual(ngram.models[0].count(gram), c, gram)
+        for gram, c in counts.items():
+            self.assertEqual(ngram.count(gram), c, gram)
 
     def test_cond_prob_1gram_no_addone(self):
         model = InterpolatedNGram(1, self.sents, gamma=1.0, addone=False)
@@ -101,7 +85,8 @@ class TestInterpolatedNGram(TestCase):
             ('</s>', '.'): l1 * 1.0 + (1.0 - l1) * 2 / 12.0,
         }
         for (token, prev), p in probs.items():
-            self.assertAlmostEqual(model.cond_prob(token, [prev]), p, msg=token)
+            self.assertAlmostEqual(model.cond_prob(token, [prev]), p,
+                                   msg=token)
 
     def test_norm_1gram(self):
         models = [
@@ -117,7 +102,8 @@ class TestInterpolatedNGram(TestCase):
             InterpolatedNGram(1, self.sents, gamma=100.0, addone=True),
         ]
 
-        tokens = {'el', 'gato', 'come', 'pescado', '.', 'la', 'gata', 'salmón', '</s>'}
+        tokens = {'el', 'gato', 'come', 'pescado', '.', 'la', 'gata',
+                  'salmón', '</s>'}
 
         for model in models:
             prob_sum = sum(model.cond_prob(token) for token in tokens)
@@ -138,12 +124,15 @@ class TestInterpolatedNGram(TestCase):
             InterpolatedNGram(2, self.sents, gamma=100.0, addone=True),
         ]
 
-        tokens = {'el', 'gato', 'come', 'pescado', '.', 'la', 'gata', 'salmón', '</s>'}
-        prevs = {'el', 'gato', 'come', 'pescado', '.', 'la', 'gata', 'salmón', '<s>'}
+        tokens = {'el', 'gato', 'come', 'pescado', '.', 'la', 'gata',
+                  'salmón', '</s>'}
+        prevs = {'el', 'gato', 'come', 'pescado', '.', 'la', 'gata', 'salmón',
+                 '<s>'}
 
         for model in models:
             for prev in prevs:
-                prob_sum = sum(model.cond_prob(token, [prev]) for token in tokens)
+                prob_sum = sum(model.cond_prob(token, [prev])
+                               for token in tokens)
                 # prob_sum < 1.0 or almost equal to 1.0:
                 self.assertAlmostLessEqual(prob_sum, 1.0, msg=prev)
 
@@ -161,15 +150,18 @@ class TestInterpolatedNGram(TestCase):
             InterpolatedNGram(3, self.sents, gamma=100.0, addone=True),
         ]
 
-        tokens = {'el', 'gato', 'come', 'pescado', '.', 'la', 'gata', 'salmón', '</s>'}
-        prev_tokens = {'el', 'gato', 'come', 'pescado', '.', 'la', 'gata', 'salmón', '<s>'}
+        tokens = {'el', 'gato', 'come', 'pescado', '.', 'la', 'gata',
+                  'salmón', '</s>'}
+        prev_tokens = {'el', 'gato', 'come', 'pescado', '.', 'la', 'gata',
+                       'salmón', '<s>'}
         prevs = [['<s>', '<s>']] + \
             [['<s>', t] for t in prev_tokens] + \
             [[t1, t2] for t1 in prev_tokens for t2 in prev_tokens]
 
         for model in models:
             for prev in prevs:
-                prob_sum = sum(model.cond_prob(token, prev) for token in tokens)
+                prob_sum = sum(model.cond_prob(token, prev)
+                               for token in tokens)
                 # prob_sum < 1.0 or almost equal to 1.0:
                 self.assertAlmostLessEqual(prob_sum, 1.0, msg=prev)
 
@@ -187,7 +179,7 @@ class TestInterpolatedNGram(TestCase):
             ('</s>',): 1,
         }
         for gram, c in counts.items():
-            self.assertEqual(model.models[0].count(gram), c, gram)
+            self.assertEqual(model.count(gram), c, gram)
 
     def assertAlmostLessEqual(self, a, b, places=7, msg=None):
         self.assertTrue(a < b or round(abs(a - b), places) == 0, msg=msg)

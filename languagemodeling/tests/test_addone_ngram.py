@@ -89,7 +89,8 @@ class TestAddOneNGram(TestCase):
     def test_norm_1gram(self):
         model = AddOneNGram(1, self.sents)
 
-        tokens = {'el', 'gato', 'come', 'pescado', '.', 'la', 'gata', 'salmón', '</s>'}
+        tokens = {'el', 'gato', 'come', 'pescado', '.', 'la', 'gata',
+                  'salmón', '</s>'}
 
         prob_sum = sum(model.cond_prob(token) for token in tokens)
         # prob_sum < 1.0 or almost equal to 1.0:
@@ -98,7 +99,8 @@ class TestAddOneNGram(TestCase):
     def test_norm_2gram(self):
         model = AddOneNGram(2, self.sents)
 
-        tokens = {'el', 'gato', 'come', 'pescado', '.', 'la', 'gata', 'salmón', '</s>'}
+        tokens = {'el', 'gato', 'come', 'pescado', '.', 'la', 'gata',
+                  'salmón', '</s>'}
 
         for prev in list(tokens) + ['<s>']:
             prob_sum = sum(model.cond_prob(token, [prev]) for token in tokens)
@@ -108,7 +110,8 @@ class TestAddOneNGram(TestCase):
     def test_norm_3gram(self):
         model = AddOneNGram(3, self.sents)
 
-        tokens = {'el', 'gato', 'come', 'pescado', '.', 'la', 'gata', 'salmón', '</s>'}
+        tokens = {'el', 'gato', 'come', 'pescado', '.', 'la', 'gata',
+                  'salmón', '</s>'}
         prevs = [['<s>', '<s>']] + \
             [['<s>', t] for t in tokens] + \
             [[t1, t2] for t1 in tokens for t2 in tokens]
