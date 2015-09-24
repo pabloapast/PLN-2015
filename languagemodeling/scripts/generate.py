@@ -12,12 +12,12 @@ Options:
 from docopt import docopt
 import pickle
 
-from ngram import NGramGenerator
+from languagemodeling.ngram import NGramGenerator
 
 
 if __name__ == '__main__':
     opts = docopt(__doc__)
-    
+
     f = None
     model_file = opts['-i']
     n = int(opts['-n'])
@@ -26,7 +26,7 @@ if __name__ == '__main__':
         f = open(model_file, 'rb')
     except IOError:
         print('Cannot open', model_file)
-    
+
     model = pickle.load(f)
     generator = NGramGenerator(model)
 

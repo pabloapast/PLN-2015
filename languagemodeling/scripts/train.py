@@ -26,7 +26,7 @@ from nltk.corpus import PlaintextCorpusReader
 from nltk.tokenize import RegexpTokenizer
 
 from languagemodeling.ngram import NGram, AddOneNGram, InterpolatedNGram,\
-                                   BackOffNGram
+    BackOffNGram
 
 pattern = '''(?ix)    # set flag to allow verbose regexps
       (sr\.|sra\.|dr\.|dra\.)
@@ -34,7 +34,7 @@ pattern = '''(?ix)    # set flag to allow verbose regexps
     | \w+(-\w+)*        # words with optional internal hyphens
     | \$?\d+(\.\d+)?%?  # currency and percentages, e.g. $12.40, 82%
     | \.\.\.            # ellipsis
-    | [][<>|\{}.,;"'“”«»¡!¿?():-_`]  # these are separate tokens; includes ], [
+    | [][<>|\{}.,;"'“”«»¡!¿?():-_`]  # these are separate tokens
 '''
 
 if __name__ == '__main__':
@@ -42,7 +42,7 @@ if __name__ == '__main__':
 
     # load the data
     tokenizer = RegexpTokenizer(pattern)
-    corpus = PlaintextCorpusReader('./corpus', 'books_corpus_train.txt',\
+    corpus = PlaintextCorpusReader('./corpus', 'books_corpus_train.txt',
                                    word_tokenizer=tokenizer)
     sents = corpus.sents()
 
@@ -69,7 +69,7 @@ if __name__ == '__main__':
     model = None
     if m == 'addone':
         model = AddOneNGram(n, sents)
-    elif m == 'interpolated':        
+    elif m == 'interpolated':
         model = InterpolatedNGram(n, sents, gamma=g, addone=a)
     elif m == 'backoff':
         model = BackOffNGram(n, sents, beta=b, addone=a)

@@ -25,7 +25,7 @@ pattern = '''(?ix)    # set flag to allow verbose regexps
 
 if __name__ == '__main__':
     opts = docopt(__doc__)
-    
+
     # Load n-gram model
     f = None
     model_file = opts['-i']
@@ -35,10 +35,10 @@ if __name__ == '__main__':
         print('Cannot open', model_file)
 
     model = pickle.load(f)
-    
+
     # Load test corpus
     tokenizer = RegexpTokenizer(pattern)
-    test_corpus = PlaintextCorpusReader('./corpus', 'books_corpus_test.txt',\
+    test_corpus = PlaintextCorpusReader('./corpus', 'books_corpus_test.txt',
                                         word_tokenizer=tokenizer)
     test_sents = test_corpus.sents()
 
