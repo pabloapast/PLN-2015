@@ -42,9 +42,9 @@ y -n <n> la cantidad de oraciones a imprimir.
 
 Resultados:
  - Unigramas:
-    1.! no y cuando sin . ... no que el banda con del lado que para esto de El
-      . presencia estas , quería mujer quizá prodigios , saber que segura Lydia
-      blancas se
+    1. ! no y cuando sin . ... no que el banda con del lado que para esto de El
+       . presencia estas , quería mujer quizá prodigios , saber que segura Lydia
+       blancas se
     2. director las quemaba por sobre contiguas lodo hablar ni en un otras
        del . profundidades pistola que especies a embargo la de imaginó sido
        Lydia no inmigrantes emplearlas ¡ sirven ninguna ancianos muy andaba lo
@@ -122,11 +122,18 @@ manera::
 
 donde -i <file> establece el modelo a evaluar.
 
-- Resultados:
-    N-grama       |    1    |     2   |     3    |   4
-    Add-one       | 1786.61 | 6479.56 | 39676.04 | 58835.36
-    Interpolation | 1803.97 | 778.93  | 772.61   | 783.41
-    Back-off      | 1803.97 | 659.96  | 664.91   | 678.13
++=========================================================+
+| Resultados:                                             |
++===============+=========+=========+==========+==========+
+| N-grama       | 1       | 2       | 3        | 4        |
++---------------+---------+---------+----------+----------+
+| Add-one       | 1786.61 | 6479.56 | 39676.04 | 58835.36 |
++---------------+---------+---------+----------+----------+
+| Interpolation | 1803.97 | 778.93  | 772.61   | 783.41   |
++---------------+---------+---------+----------+----------+
+| Back-off      | 1803.97 | 659.96  | 664.91   | 678.13   |
++---------------+---------+---------+----------+----------+
+
 
 
 Ejercicio 6: Suavizado por Interpolación
