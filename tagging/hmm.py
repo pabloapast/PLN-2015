@@ -1,3 +1,9 @@
+from math import log2
+
+START = '<s>'
+STOP = '</s>'
+
+
 class HMM:
 
     def __init__(self, n, tagset, trans, out):
@@ -24,7 +30,7 @@ class HMM:
         prev_tags -- tuple with the previous n-1 tags (optional only if n = 1).
         """
         tag_prob = -1
-        if prev_tags is None:
+        if prev_tags is None or prev_tags == []:
             assert self.n == 1
             tag_prob = self.trans.get(tag, 0)
         else:
@@ -49,6 +55,12 @@ class HMM:
 
         y -- tagging.
         """
+        prev_tags = [START] * (self.n - 1)
+        tagging = prev_tags + list(y)
+        p = 0
+        for i in range(self.n - 1, len(tagging)):
+            p *= self.trans_prob(tagging[i], tagging[i - self.n + 1:i])
+        return p
 
     def prob(self, x, y):
         """
@@ -58,6 +70,13 @@ class HMM:
         x -- sentence.
         y -- tagging.
         """
+        assert len(x) == len(y)
+
+        p_y = self.tag_prob(y)
+        p_x = 0
+        for i in len(x):
+            p_x *= self.out_prob(x[i], y[i])
+        return p_y * p_x
 
     def tag_log_prob(self, y):
         """
@@ -65,6 +84,12 @@ class HMM:
 
         y -- tagging.
         """
+        prev_tags = [START] * (self.n - 1)
+        tagging = prev_tags + list(y)
+        p = 0
+        for i in range(self.n - 1, len(tagging)):
+            p += log2(self.trans_prob(tagging[i], tagging[i - self.n + 1:i]))
+        return p
 
     def log_prob(self, x, y):
         """
@@ -73,12 +98,22 @@ class HMM:
         x -- sentence.
         y -- tagging.
         """
+        assert len(x) == len(y)
+
+        p_y = self.tag_log_prob(y)
+        p_x = 0
+        for i in len(x):
+            p_x += log2(self.out_prob(x[i], y[i]))
+        return p_y + p_x
+
 
     def tag(self, sent):
         """Returns the most probable tagging for a sentence.
 
         sent -- the sentence.
         """
+        tagger = ViterbiTagger(self)
+        return tagger.tag(sent)
 
 
 class ViterbiTagger:
@@ -87,6 +122,7 @@ class ViterbiTagger:
         """
         hmm -- the HMM.
         """
+
 
     def tag(self, sent):
         """Returns the most probable tagging for a sentence.
