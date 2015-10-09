@@ -15,6 +15,7 @@ def word_lower(h):
     h -- a history.
     """
     sent, i = h.sent, h.i
+    print('word_lower = ', sent, i)
     return sent[i].lower()
 
 def word_istitle(h):
@@ -82,5 +83,12 @@ class PrevWord(Feature):
 
         h -- the history.
         """
-        sent, i = h.sent, h.i
-        self.f(sent[i - 1])
+        sent, prev_tags, i = h.sent, h.prev_tags, h.i
+        value = None
+        if i > 0:
+            prev_word_history = History(sent, prev_tags, i - 1)
+            value = self.f(prev_word_history)
+        else:
+            value = 'BOS'
+
+        return value
