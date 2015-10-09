@@ -9,7 +9,7 @@ from featureforge.feature import Feature
 History = namedtuple('History', 'sent prev_tags i')
 
 
-def word_lower(h):
+def word_lower(h):  # TODO van en alguna clase?!
     """Feature: current lowercased word.
 
     h -- a history.
