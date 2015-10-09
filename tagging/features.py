@@ -18,28 +18,36 @@ def word_lower(h):
     return sent[i].lower()
 
 def word_istitle(h):
-    """Feature: check if the sentence is a title.
+    """Feature: check if current word is a title.
 
     h -- a history.
     """
-    sent = h.sent
-    return sent.istitle()
+    sent, i = h.sent, h.i
+    return sent[i].istitle()
 
 def word_isupper(h):
-    """Feature: check if the sentence is upper.
+    """Feature: check if current word is upper.
 
     h -- a history.
     """
-    sent = h.sent
-    return sent.isupper()
+    sent, i = h.sent, h.i
+    return sent[i].isupper()
 
 def word_isdigit(h):
-    """Feature: check if the sentence is a digit.
+    """Feature: check if current word is digit.
 
     h -- a history.
     """
-    sent = h.sent
-    return sent.isdigit()
+    sent, i = h.sent, h.i
+    return sent[i].isdigit()
+
+def prev_tags(h):
+    """Feature: return the previous tags.
+
+    h -- a history.
+    """
+    prev_tags = h.prev_tags
+    return prev_tags
 
 
 class NPrevTags(Feature):
@@ -49,12 +57,15 @@ class NPrevTags(Feature):
 
         n -- number of previous tags to consider.
         """
+        self.n = n
 
     def _evaluate(self, h):
         """n previous tags tuple.
 
         h -- a history.
         """
+        prev_tags = h.prev_tags
+        return prev_tags[- self.n:]
 
 
 class PrevWord(Feature):
@@ -64,9 +75,12 @@ class PrevWord(Feature):
 
         f -- the feature.
         """
+        self.f = f
 
     def _evaluate(self, h):
         """Apply the feature to the previous word in the history.
 
         h -- the history.
         """
+        sent, i = h.sent, h.i
+        self.f(sent[i - 1])
