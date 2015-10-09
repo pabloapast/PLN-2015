@@ -15,14 +15,14 @@ class HMM:
         out -- output probabilities dictionary.
         """
         self.n = n
-        self.tags = tagset
+        self.tags_set = tagset
         self.trans = trans
         self.out = out
 
     def tagset(self):
         """Returns the set of tags.
         """
-        return self.tags
+        return self.tags_set
 
     def trans_prob(self, tag, prev_tags):
         """Probability of a tag.
@@ -160,7 +160,7 @@ class ViterbiTagger:
         self._pi[0][(START,) * (self.hmm.n - 1)] = (log2(1), [])
 
         for k in range(1, N + 1):
-            for tag in self.hmm.tags:
+            for tag in self.hmm.tags_set:
                 max_prob = float('-inf')
                 for prev_tags, (prob, tag_seq) in self._pi[k - 1].items():
                     partial_prob = (prob +
@@ -176,34 +176,51 @@ class ViterbiTagger:
 
 class MLHMM:
 
-    def __init__(self, n, tagged_sents, addone=True):  # TODO AddOne sobre e(x|s)
+    def __init__(self, n, tagged_sents, addone=True):
         """
         n -- order of the model.
         tagged_sents -- training sentences, each one being a list of pairs.
         addone -- whether to use addone smoothing (default: True).
         """
         self.n = n
+        self.addone = addone
         self.counts = counts = defaultdict(int)
         self.out = defaultdict(defaultdict)
         self.vocabulary = vocabulary = []
         self.tags_set = tags_set = []
 
-        # Compute counts of tags and words, out probabilities, vocabulary and
-        # tags_set
-        for sent in sents:
-            words, tags = zip(*sent)
+        # Compute counts of tags and words, vocabulary and tags_set
+        pairs_count = defaultdict(defaultdict)  # Used to compute out prob
+        for tagged_sent in tagged_sents:
+            for word, tag in tagged_sent:
+                try:
+                    pairs_count[tag][word] += 1
+                except KeyError:
+                    pairs_count[tag][word] = 1
+
+            words, tags = zip(*tagged_sent)
             vocabulary += words
             tags_set += tags
-            tags = ([START] * (n - 1)) + tags
-            tags.append(STOP)
-            for i in range(len(tags) - n + 1):
-                ngram = tuple(tags[i: i + n])
-                counts[ngram] += 1
-                counts[ngram[:-1]] += 1
+            tags += (STOP,)
+            for i in range(1, n + 1):
+                if i > 1:
+                    tags = (START,) + tags
+                for j in range(len(tags)  - i + 1):
+                    ngram = tags[j: j + i]
+                    counts[ngram] += 1
+                    prev = ngram[:-1]
+                    if i == 1 or prev == (START,) * (i - 1):
+                        counts[prev] += 1
+
+        # Compute out probabilities
+        for tag, words_with_count in pairs_count.items():
+            total_words_count = sum(words_with_count.values())
+            for word, word_count in words_with_count.items():
+                self.out[tag][word] = word_count / total_words_count
 
         vocabulary = set(vocabulary)
         tags_set = set(tags_set)
-        # self.vocabulary_size = len(vocabulary)
+        self.vocabulary_size = len(vocabulary)
         # self.tagset_size = len(tags_set)
 
     def tcount(self, tokens):
@@ -218,7 +235,7 @@ class MLHMM:
 
         w -- the word.
         """
-        return w in self.vocabulary
+        return w not in self.vocabulary
 
     def tagset(self):
         """Returns the set of tags.
@@ -235,8 +252,15 @@ class MLHMM:
             prev_tags = []
         assert len(prev_tags) == self.n - 1
 
-        tags = prev_tags + [tag]
-        return self.tcount(tags) / self.tcount(prev_tags)
+        tags = list(prev_tags) + [tag]
+        prob = -1
+        if self.addone:
+            prob = (self.tcount(tags) + 1) / \
+                   (self.tcount(prev_tags) + self.tagset_size)
+        else:
+            prob = self.tcount(tags) / self.tcount(prev_tags)
+        assert prob >= 0
+        return prob
 
     def trans_log_prob(self, tag, prev_tags):  # TODO
         """Log probability of a tag.
