@@ -18,13 +18,28 @@ def word_lower(h):
     return sent[i].lower()
 
 def word_istitle(h):
-    pass
+    """Feature: check if the sentence is a title.
+
+    h -- a history.
+    """
+    sent = h.sent
+    return sent.istitle()
 
 def word_isupper(h):
-    pass
+    """Feature: check if the sentence is upper.
+
+    h -- a history.
+    """
+    sent = h.sent
+    return sent.isupper()
 
 def word_isdigit(h):
-    pass
+    """Feature: check if the sentence is a digit.
+
+    h -- a history.
+    """
+    sent = h.sent
+    return sent.isdigit()
 
 
 class NPrevTags(Feature):
