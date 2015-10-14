@@ -1,6 +1,8 @@
 from featureforge.vectorizer import Vectorizer
 from sklearn.linear_model import LogisticRegression
-from tagging.features import History
+from sklearn.pipeline import Pipeline
+from tagging.features import History, word_lower, word_istitle, word_isupper,
+                             word_isdigit, prev_tags, NPrevTags, PrevWord
 from tagging.hmm import START
 
 
@@ -19,6 +21,13 @@ class MEMM:
             vocabulary += sent
         vocabulary = set(vocabulary)
 
+        vect = Vectorizer([word_lower, word_istitle, word_isupper,
+                           word_isdigit, prev_tags])
+        self.hist_clf = hist_clf = Pipeline([('vect', vect),
+                                             ('clf', LogisticRegression()),
+                                            ])
+        hist_clf = hist_clf.fit(self.sents_histories(tagged_sents),
+                                self.sents_tags(tagged_sents))
 
     def sents_histories(self, tagged_sents):
         """
@@ -68,17 +77,19 @@ class MEMM:
         return list(tags)
 
 
-    def tag(self, sent):
+    def tag(self, sent):  # TODO
         """Tag a sentence.
 
         sent -- the sentence.
         """
 
-    def tag_history(self, h):
+    def tag_history(self, h):  # TODO
         """Tag a history.
 
         h -- the history.
         """
+        predicted = self.hist_clf.predict(h)
+
 
     def unknown(self, w):
         """Check if a word is unknown for the model.
