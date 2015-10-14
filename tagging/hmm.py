@@ -201,16 +201,12 @@ class MLHMM:
             words, tags = zip(*tagged_sent)
             vocabulary += words
             tags_set += tags
+            tags = (START,) * (n - 1) + tags
             tags += (STOP,)
-            for i in range(1, n + 1):
-                if i > 1:
-                    tags = (START,) + tags
-                for j in range(len(tags)  - i + 1):
-                    ngram = tags[j: j + i]
-                    counts[ngram] += 1
-                    prev = ngram[:-1]
-                    if i == 1 or prev == (START,) * (i - 1):
-                        counts[prev] += 1
+            for i in range(len(tags) - n + 1):
+                ngram = tags[i: i + n]
+                counts[ngram] += 1
+                counts[ngram[:-1]] += 1
 
         # Compute out probabilities
         for tag, words_with_count in pairs_count.items():
