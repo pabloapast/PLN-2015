@@ -1,7 +1,7 @@
 from featureforge.vectorizer import Vectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
-from tagging.features import History, word_lower, word_istitle, word_isupper,
+from tagging.features import History, word_lower, word_istitle, word_isupper,\
                              word_isdigit, prev_tags, NPrevTags, PrevWord
 from tagging.hmm import START
 
@@ -21,9 +21,8 @@ class MEMM:
             vocabulary += sent
         vocabulary = set(vocabulary)
 
-        vect = Vectorizer([word_lower, word_istitle, word_isupper,
-                           word_isdigit, prev_tags])
-        self.hist_clf = hist_clf = Pipeline([('vect', vect),
+        features = [word_lower, word_istitle, word_isupper, word_isdigit]
+        self.hist_clf = hist_clf = Pipeline([('vect', Vectorizer(features)),
                                              ('clf', LogisticRegression()),
                                             ])
         hist_clf = hist_clf.fit(self.sents_histories(tagged_sents),
@@ -37,7 +36,7 @@ class MEMM:
         """
         histories = []
         for tagged_sent in tagged_sents:
-            histories += sent_histories(tagged_sent)
+            histories += self.sent_histories(tagged_sent)
 
         return histories
 
@@ -48,10 +47,11 @@ class MEMM:
         tagged_sent -- the tagged sentence (a list of pairs (word, tag)).
         """
         histories = []
-        sent, tags = zip(*tagged_sents):
+        sent, tags = zip(*tagged_sent)
+        sent = list(sent)
         tags = (START,) * (self.n - 1) + tags
-        for i in len(sent):
-            histories.append(History(sent, tags[i:self.n - 1], i))
+        for i in range(len(sent)):
+            histories.append(History(sent, tags[i:i + self.n - 1], i))
 
         return histories
 
@@ -63,7 +63,7 @@ class MEMM:
         """
         tags_list = []
         for tagged_sent in tagged_sents:
-            tags_list += sent_tags(tagged_sent)
+            tags_list += self.sent_tags(tagged_sent)
 
         return tags_list
 
@@ -77,19 +77,24 @@ class MEMM:
         return list(tags)
 
 
-    def tag(self, sent):  # TODO
+    def tag(self, sent):
         """Tag a sentence.
 
         sent -- the sentence.
         """
+        tagging = [START] * (self.n - 1)
+        for i in range(len(sent)):
+            hist = History(sent, tagging[i:i + self.n - 1], i)
+            tagging.append(self.tag_history(hist))
 
-    def tag_history(self, h):  # TODO
+        return tagging[self.n - 1:]
+
+    def tag_history(self, h):
         """Tag a history.
 
         h -- the history.
         """
-        predicted = self.hist_clf.predict(h)
-
+        return self.hist_clf.predict([h])[0]
 
     def unknown(self, w):
         """Check if a word is unknown for the model.
