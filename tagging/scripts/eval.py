@@ -11,6 +11,7 @@ Options:
 from collections import defaultdict
 from docopt import docopt
 import pickle
+# from stats import top10_tags
 import sys
 
 from corpus.ancora import SimpleAncoraCorpusReader
@@ -53,9 +54,6 @@ if __name__ == '__main__':
         hits_known = [m == g for j, (m, g) in
                       enumerate(zip(model_tag_sent, gold_tag_sent))
                       if not model.unknown(word_sent[j])]
-        hits_unknown = [m == g for j, (m, g) in
-                        enumerate(zip(model_tag_sent, gold_tag_sent))
-                        if model.unknown(word_sent[j])]
 
         for m, g in zip(model_tag_sent, gold_tag_sent):
             try:
@@ -67,32 +65,26 @@ if __name__ == '__main__':
         total += len(sent)
         hits_k += sum(hits_known)
         total_k += len(hits_known)
-        hits_u += sum(hits_unknown)
-        total_u += len(hits_unknown)
+
         acc = float(hits) / total
-        # acc_known = float(hits_k) / total
-        # acc_unknown = float(hits_u) / total
         progress('{:3.1f}% ({:2.2f}%)'.format(float(i) * 100 / n, acc * 100))
 
-        # print('total_k', total_k)
-        # print('total_u', total_u)
-
     acc = float(hits) / total
-    acc_known = float(hits_k) / total
-    acc_unknown = float(hits_u) / total
+    acc_known = float(hits_k) / total_k
+    acc_unknown = (float(hits) - float(hits_k)) / (total - total_k)
 
     print('')
     print('Accuracy: {:2.2f}%'.format(acc * 100))
     print('Accuracy known words: {:2.2f}%'.format(acc_known * 100))
     print('Accuracy unknown words: {:2.2f}%'.format(acc_unknown * 100))
 
-    tags = list(confusion_matrix.keys())
-    print(('     ' + '{}     '*len(tags)).format(*tags))
-    for gold_tag, model_tags_dict in confusion_matrix.items():
-        print(gold_tag  + '  ', end='')
-        for model_tag in tags:
-            if gold_tag == model_tag:
-                print('  {}    '.format('-'), end='')
-            else:
-                print('{:2.2f}%  '.format(model_tags_dict.get(model_tag, 0) / total), end='')
-        print('')
+    # tags = top10_tags #list(confusion_matrix.keys())
+    # print(('     ' + '{}     '*len(tags)).format(*tags))
+    # for gold_tag, model_tags_dict in confusion_matrix.items():
+    #     print(gold_tag  + '  ', end='')
+    #     for model_tag in tags:
+    #         if gold_tag == model_tag:
+    #             print('  {}    '.format('-'), end='')
+    #         else:
+    #             print('{:2.2f}%  '.format(model_tags_dict.get(model_tag, 0) / total), end='')
+    #     print('')

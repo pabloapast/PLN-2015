@@ -1,5 +1,7 @@
 from featureforge.vectorizer import Vectorizer
 from sklearn.linear_model import LogisticRegression
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.svm import LinearSVC
 from sklearn.pipeline import Pipeline
 from tagging.features import History, word_lower, word_istitle, word_isupper,\
                              word_isdigit, prev_tags, NPrevTags, PrevWord
@@ -8,13 +10,18 @@ from tagging.hmm import START
 
 class MEMM:
 
-    def __init__(self, n, tagged_sents):
+    def __init__(self, n, tagged_sents, classifier='LogisticRegression'):
         """
         n -- order of the model.
         tagged_sents -- list of sentences, each one being a list of pairs.
         """
         self.n = n
         self.vocabulary = vocabulary = []
+
+        classifiers = {'LogisticRegression': LogisticRegression(),
+                       'LinearSVC': LinearSVC(),
+                       'MultinomialNB': MultinomialNB(),
+                       }
 
         for tagged_sent in tagged_sents:
             sent, tags = zip(*tagged_sent)
@@ -31,7 +38,7 @@ class MEMM:
             features.append(PrevWord(ft))
 
         self.hist_clf = hist_clf = Pipeline([('vect', Vectorizer(features)),
-                                             ('clf', LogisticRegression()),
+                                             ('clf', classifiers[classifier]),
                                             ])
         hist_clf = hist_clf.fit(self.sents_histories(tagged_sents),
                                 self.sents_tags(tagged_sents))
