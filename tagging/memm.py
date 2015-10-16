@@ -21,7 +21,15 @@ class MEMM:
             vocabulary += sent
         vocabulary = set(vocabulary)
 
-        features = [word_lower, word_istitle, word_isupper, word_isdigit]
+        basic_features = [word_lower, word_istitle, word_isupper, word_isdigit,
+                          prev_tags]
+        features = basic_features.copy()
+        for i in range(1, self.n):
+            features.append(NPrevTags(i))
+        # All the basic features except prev_tags
+        for ft in basic_features[:-1]:  # REVISAR ESTO
+            features.append(PrevWord(ft))
+
         self.hist_clf = hist_clf = Pipeline([('vect', Vectorizer(features)),
                                              ('clf', LogisticRegression()),
                                             ])

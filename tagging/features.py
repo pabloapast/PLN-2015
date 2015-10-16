@@ -86,7 +86,7 @@ class PrevWord(Feature):
         value = None
         if i > 0:
             prev_word_history = History(sent, prev_tags, i - 1)
-            value = self.f(prev_word_history)
+            value = str(self.f(prev_word_history))
         else:
             value = 'BOS'
 
