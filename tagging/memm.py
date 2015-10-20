@@ -15,6 +15,9 @@ class MEMM:
         n -- order of the model.
         tagged_sents -- list of sentences, each one being a list of pairs.
         """
+        assert n > 0
+        assert tagged_sents is not None
+
         self.n = n
         self.vocabulary = vocabulary = []
 

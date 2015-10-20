@@ -7,6 +7,8 @@ class BaselineTagger:
         """
         tagged_sents -- training sentences, each one being a list of pairs.
         """
+        assert tagged_sents is not None
+
         self.counts = counts = defaultdict(defaultdict)
         self.frequent_tag = ''
         tag_count = defaultdict(int)
