@@ -41,7 +41,7 @@ if __name__ == '__main__':
 
     # tag
     hits, hits_k, hits_u, total, total_k, total_u = 0, 0, 0, 0, 0, 0
-    confusion_matrix = defaultdict(defaultdict)
+    # confusion_matrix = defaultdict(defaultdict)
     n = len(sents)
     for i, sent in enumerate(sents):
         word_sent, gold_tag_sent = zip(*sent)
@@ -55,11 +55,11 @@ if __name__ == '__main__':
                       enumerate(zip(model_tag_sent, gold_tag_sent))
                       if not model.unknown(word_sent[j])]
 
-        for m, g in zip(model_tag_sent, gold_tag_sent):
-            try:
-                confusion_matrix[g][m] += m != g
-            except KeyError:
-                confusion_matrix[g][m] = m != g
+        # for m, g in zip(model_tag_sent, gold_tag_sent):
+        #     try:
+        #         confusion_matrix[g][m] += m != g
+        #     except KeyError:
+        #         confusion_matrix[g][m] = m != g
 
         hits += sum(hits_sent)
         total += len(sent)
@@ -67,7 +67,11 @@ if __name__ == '__main__':
         total_k += len(hits_known)
 
         acc = float(hits) / total
-        progress('{:3.1f}% ({:2.2f}%)'.format(float(i) * 100 / n, acc * 100))
+        acc_known = float(hits_k) / total_k
+        acc_unknown = (float(hits) - float(hits_k)) / (total - total_k)
+        progress('{:3.1f}% ({:2.2f}% / {:2.2f}% / {:2.2f}%)'.format(
+                 float(i) * 100 / n, acc * 100, acc_known * 100,
+                 acc_unknown * 100))
 
     acc = float(hits) / total
     acc_known = float(hits_k) / total_k

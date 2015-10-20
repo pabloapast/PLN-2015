@@ -7,10 +7,9 @@ Usage:
 Options:
   -m <model>        Model to use [default: base]:
                       base: Baseline
-                      hmm: Hidden Markov Model
                       mlhmm: Hidden Markov Model with Maximum Likelihood
                       memm: Maximum Entropy Markov Model
-  -n <n>            Order of the model for memm [default: None]
+  -n <n>            Order of the model for memm [default: 1]
   -a <addone>       Whether to use addone smoothing for mlhmm [default: True]
   -c <classifier>   Classifier to use in memm [default: LogisticRegression]:
                       LogisticRegression: Logistic Regression
@@ -24,13 +23,8 @@ import pickle
 
 from corpus.ancora import SimpleAncoraCorpusReader
 from tagging.baseline import BaselineTagger
-
-
-models = {
-    'base': BaselineTagger,
-    'mlhmm': MLHMM,
-    'memm': MEMM,
-}
+from tagging.hmm import MLHMM
+from tagging.memm import MEMM
 
 
 if __name__ == '__main__':
@@ -42,11 +36,18 @@ if __name__ == '__main__':
     sents = list(corpus.tagged_sents())
 
     # train the model
+    model = None
     model_type = opts['-m']
-    if model_type == 'base':
-        model = models[model_type](sents)
-    elif:
-
+    if model_type == 'mlhmm':
+        if opts['-a'] in ['false', 'False']:
+            opts['-a'] = False
+        else:
+            opts['-a'] = True
+        model = MLHMM(n=int(opts['-n']), tagged_sents=sents, addone=opts['-a'])
+    elif model_type == 'mlhmm':
+        model = MEMM(n=int(opts['-n']), tagged_sents=sents, classifier=opts['-c'])
+    else:
+        model = BaselineTagger(tagged_sents=sents)
 
     # save it
     filename = opts['-o']
