@@ -41,18 +41,6 @@ class HMM:
         assert tag_prob >= 0
         return tag_prob
 
-    def trans_log_prob(self, tag, prev_tags):
-        """Log probability of a tag.
-
-        tag -- the tag.
-        prev_tags -- tuple with the previous n-1 tags (optional only if n = 1).
-        """
-        tag_prob = self.trans_prob(tag, prev_tags)
-        if tag_prob == 0:
-            return float('-inf')
-        else:
-            return log2(tag_prob)
-
     def out_prob(self, word, tag):
         """Probability of a word given a tag.
 
@@ -60,18 +48,6 @@ class HMM:
         tag -- the tag.
         """
         return self.out.get(tag, dict()).get(word, 0)
-
-    def out_log_prob(self, word, tag):
-        """Log probability of a word given a tag.
-
-        word -- the word.
-        tag -- the tag.
-        """
-        word_prob = self.out_prob(word, tag)
-        if word_prob == 0:
-            return float('-inf')
-        else:
-            return log2(word_prob)
 
     def tag_prob(self, y):
         """
@@ -113,7 +89,12 @@ class HMM:
         tagging = prev_tags + list(y) + [STOP]
         p = 0
         for i in range(self.n - 1, len(tagging)):
-            p += self.trans_log_prob(tagging[i], tagging[i - (self.n - 1):i])
+            trans_p = self.trans_prob(tagging[i], tagging[i - (self.n - 1):i])
+            if trans_p > 0:
+                p += log2(trans_p)
+            else:
+                p = float('-inf')
+                break
         return p
 
     def log_prob(self, x, y):
@@ -128,7 +109,12 @@ class HMM:
         p_y = self.tag_log_prob(y)
         p_x = 0
         for word, tag in zip(x, y):
-            p_x += self.out_log_prob(word, tag)
+            out_p = self.out_prob(word, tag)
+            if out_p > 0:
+                p_x += log2(out_p)
+            else:
+                p_x = float('-inf')
+                break
         return p_y + p_x
 
 
@@ -154,69 +140,81 @@ class ViterbiTagger:
 
         sent -- the sentence.
         """
-        # N = len(sent)
-        # hmm = self._hmm
-        # # Initialization: pi(0, *, ..., *) = 1
-        # pi = self._pi = defaultdict(defaultdict)
-        # pi[0][(START,) * (hmm.n - 1)] = (log2(1), [])
-
-        # for k in range(1, N + 1):
-        #     for tag in hmm.tags_set:
-        #         max_prob = float('-inf')
-        #         for prev_tags, (prob, tag_seq) in pi[k - 1].items():
-        #             assert len(prev_tags) == hmm.n - 1
-        #             partial_prob = (prob +
-        #                             hmm.trans_log_prob(tag, prev_tags) +
-        #                             hmm.out_log_prob(sent[k - 1], tag))
-        #             # print('max_prob {:2.4f} - partial_prob {:2.4f}'.format(max_prob, partial_prob))
-        #             if max_prob < partial_prob:
-        #                 max_prob = partial_prob
-        #                 pi[k][prev_tags[1:] + (tag,)] = (max_prob,
-        #                         pi[k - 1][prev_tags][1] + [tag])
-
-        # print(pi)
-        # return max(pi[N].items(), key=lambda t: t[1][0])[1][1]
-
-        m = len(sent)
         hmm = self._hmm
         n = hmm.n
         tagset = hmm.tagset()
+        N = len(sent)
 
-        self._pi = pi = {}
-        pi[0] = {
-            ('<s>',) * (n - 1): (0.0, [])
-        }
+        # Initialization: pi(0, *, ..., *) = 1
+        pi = self._pi = {}
+        pi[0] = { (START,) * (n - 1): (log2(1), []) }
 
-        for i, w in zip(range(1, m + 1), sent):
-            pi[i] = {}
+        for k in range(1, N + 1):
+            pi[k] = {}
 
-            # iterate over tags that can follow with out_prob > 0.0
-            tag_out_probs = [(t, hmm.out_prob(w, t)) for t in tagset]
-            for t, out_p in [(t, p) for t, p in tag_out_probs if p > 0.0]:
-                # iterate over non-zeros in the previous column
-                for prev, (lp, tag_sent) in pi[i - 1].items():
-                    trans_p = hmm.trans_prob(t, prev)
-                    if trans_p > 0.0:
-                        new_prev = (prev + (t,))[1:]
-                        new_lp = lp + log2(out_p) + log2(trans_p)
-                        # is it the max?
-                        if new_prev not in pi[i] or new_lp > pi[i][new_prev][0]:
-                            # XXX: what if equal?
-                            pi[i][new_prev] = (new_lp, tag_sent + [t])
+            word = sent[k - 1]
+            tags_whit_out_prob = [(t, hmm.out_prob(word, t)) for t in tagset
+                                  if hmm.out_prob(word, t) > 0]
+            for tag, out_prob in tags_whit_out_prob:
+                max_prob = float('-inf')
+                for prev_tags, (prob, tag_seq) in pi[k - 1].items():
+                    assert len(prev_tags) == n - 1
+                    trans_p = hmm.trans_prob(tag, prev_tags)
+                    if trans_p > 0:
+                        new_prob = (prob + log2(trans_p) + log2(out_prob))
+                        if max_prob < new_prob:
+                            max_prob = new_prob
+                            new_prev_tags = prev_tags[1:] + (tag,)
+                            pi[k][new_prev_tags] = (max_prob, tag_seq + [tag])
 
-        # last step: generate STOP
-        max_lp = float('-inf')
-        result = None
-        print(pi)
-        for prev, (lp, tag_sent) in pi[m].items():
-            p = hmm.trans_prob('</s>', prev)
-            if p > 0.0:
-                new_lp = lp + log2(p)
-                if new_lp > max_lp:
-                    max_lp = new_lp
-                    result = tag_sent
-        print(result)
-        return result
+        max_prob = float('-inf')
+        for prev_tags, (prob, tag_seq) in pi[N].items():
+            if max_prob < prob:
+                max_prob = prob
+                tagging = tag_seq
+
+        return tagging
+
+        # m = len(sent)
+        # hmm = self._hmm
+        # n = hmm.n
+        # tagset = hmm.tagset()
+
+        # self._pi = pi = {}
+        # pi[0] = {
+        #     ('<s>',) * (n - 1): (0.0, [])
+        # }
+
+        # for i, w in zip(range(1, m + 1), sent):
+        #     pi[i] = {}
+
+        #     # iterate over tags that can follow with out_prob > 0.0
+        #     tag_out_probs = [(t, hmm.out_prob(w, t)) for t in tagset]
+        #     for t, out_p in [(t, p) for t, p in tag_out_probs if p > 0.0]:
+        #         # iterate over non-zeros in the previous column
+        #         for prev, (lp, tag_sent) in pi[i - 1].items():
+        #             trans_p = hmm.trans_prob(t, prev)
+        #             if trans_p > 0.0:
+        #                 new_prev = (prev + (t,))[1:]
+        #                 new_lp = lp + log2(out_p) + log2(trans_p)
+        #                 # is it the max?
+        #                 if new_prev not in pi[i] or new_lp > pi[i][new_prev][0]:
+        #                     # XXX: what if equal?
+        #                     pi[i][new_prev] = (new_lp, tag_sent + [t])
+
+        # # last step: generate STOP
+        # max_lp = float('-inf')
+        # result = None
+        # for prev, (lp, tag_sent) in pi[m].items():
+        #     p = hmm.trans_prob('</s>', prev)
+        #     if p > 0.0:
+        #         new_lp = lp + log2(p)
+        #         if new_lp > max_lp:
+        #             max_lp = new_lp
+        #             result = tag_sent
+
+        # return result
+
 
 
 class MLHMM(HMM):
@@ -237,17 +235,15 @@ class MLHMM(HMM):
         self.vocabulary = vocabulary = []
         self.tags_set = tags_set = []
 
+        # Used to compute out prob
+        pairs_count = defaultdict(lambda : defaultdict(int))
         # Compute counts of tags and words, vocabulary and tags_set
-        pairs_count = defaultdict(defaultdict)  # Used to compute out prob
         for tagged_sent in tagged_sents:
             words, tags = [], []
             for word, tag in tagged_sent:
                 words.append(word)
                 tags.append(tag)
-                try:
-                    pairs_count[tag][word] += 1
-                except KeyError:
-                    pairs_count[tag][word] = 1
+                pairs_count[tag][word] += 1
 
             vocabulary += words
             tags_set += tags
@@ -257,16 +253,16 @@ class MLHMM(HMM):
                 counts[ngram] += 1
                 counts[ngram[:-1]] += 1
 
+        self.vocabulary = set(vocabulary)
+        self.tags_set = set(tags_set)
+        self.vocabulary_size = len(vocabulary)
+        self.tagset_size = len(tags_set) + 1 # XXX DEBERIA CONTAR STOP??
+
         # Compute out probabilities
         for tag, words_with_count in pairs_count.items():
             total_words_count = sum(words_with_count.values())
             for word, word_count in words_with_count.items():
                 self.out[tag][word] = word_count / total_words_count
-
-        vocabulary = set(vocabulary)
-        tags_set = set(tags_set)
-        self.vocabulary_size = len(vocabulary)
-        self.tagset_size = len(tags_set)  # XXX DEBERIA CONTAR STOP??
 
     def tcount(self, tokens):
         """Count for an k-gram for k <= n.
@@ -303,20 +299,6 @@ class MLHMM(HMM):
         assert prob >= 0
         return prob
 
-    def trans_log_prob(self, tag, prev_tags):  # TODO
-        """Log probability of a tag.
-
-        tag -- the tag.
-        prev_tags -- tuple with the previous n-1 tags (optional only if n = 1).
-        """
-        tag_prob = self.trans_prob(tag, prev_tags)
-        prob = 0
-        if tag_prob == 0:
-            prob = float('-inf')
-        else:
-            prob = log2(tag_prob)
-        return prob
-
     def out_prob(self, word, tag):
         """Probability of a word given a tag.
 
@@ -325,24 +307,9 @@ class MLHMM(HMM):
         """
         prob = 0
         if self.unknown(word):
-            prob = 1.0 / self.vocabulary_size
+            prob = 1 / self.vocabulary_size
         else:
             prob = self.out.get(tag).get(word, 0)
-            # assert prob != 0
-        return prob
-
-    def out_log_prob(self, word, tag):
-        """Log probability of a word given a tag.
-
-        word -- the word.
-        tag -- the tag.
-        """
-        word_prob = self.out_prob(word, tag)
-        prob = 0
-        if word_prob == 0:
-            prob = float('-inf')
-        else:
-            prob = log2(word_prob)
         return prob
 
     def tag(self, sent):
