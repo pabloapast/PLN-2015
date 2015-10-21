@@ -27,9 +27,9 @@ class MEMM:
                        }
 
         for tagged_sent in tagged_sents:
-            sent, tags = zip(*tagged_sent)
-            vocabulary += sent
-        vocabulary = set(vocabulary)
+            for word, tag in tagged_sent:
+                vocabulary.append(word)
+        self.vocabulary = set(vocabulary)
 
         basic_features = [word_lower, word_istitle, word_isupper, word_isdigit,
                           prev_tags]
