@@ -33,7 +33,8 @@ if __name__ == '__main__':
     # load the data
     files = 'CESS-CAST-(A|AA|P)/.*\.tbf\.xml'
     corpus = SimpleAncoraCorpusReader('ancora/ancora-2.0/', files)
-    sents = list(corpus.tagged_sents())
+    sents = [tagged_sent for tagged_sent in corpus.tagged_sents()
+             if len(tagged_sent) > 0]
 
     # train the model
     model = None
@@ -44,7 +45,7 @@ if __name__ == '__main__':
         else:
             opts['-a'] = True
         model = MLHMM(n=int(opts['-n']), tagged_sents=sents, addone=opts['-a'])
-    elif model_type == 'mlhmm':
+    elif model_type == 'memm':
         model = MEMM(n=int(opts['-n']), tagged_sents=sents, classifier=opts['-c'])
     else:
         model = BaselineTagger(tagged_sents=sents)

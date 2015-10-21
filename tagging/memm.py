@@ -19,16 +19,16 @@ class MEMM:
         assert tagged_sents is not None
 
         self.n = n
-        self.vocabulary = vocabulary = []
 
         classifiers = {'LogisticRegression': LogisticRegression(),
                        'LinearSVC': LinearSVC(),
                        'MultinomialNB': MultinomialNB(),
                        }
 
+        vocabulary = ()
         for tagged_sent in tagged_sents:
-            for word, tag in tagged_sent:
-                vocabulary.append(word)
+            words, tags = zip(*tagged_sent)
+            vocabulary += words
         self.vocabulary = set(vocabulary)
 
         basic_features = [word_lower, word_istitle, word_isupper, word_isdigit,
