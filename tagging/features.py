@@ -17,6 +17,7 @@ def word_lower(h):
     sent, i = h.sent, h.i
     return sent[i].lower()
 
+
 def word_istitle(h):
     """Feature: check if current word is a title.
 
@@ -24,6 +25,7 @@ def word_istitle(h):
     """
     sent, i = h.sent, h.i
     return sent[i].istitle()
+
 
 def word_isupper(h):
     """Feature: check if current word is upper.
@@ -33,6 +35,7 @@ def word_isupper(h):
     sent, i = h.sent, h.i
     return sent[i].isupper()
 
+
 def word_isdigit(h):
     """Feature: check if current word is digit.
 
@@ -40,6 +43,7 @@ def word_isdigit(h):
     """
     sent, i = h.sent, h.i
     return sent[i].isdigit()
+
 
 def prev_tags(h):
     """Feature: return the previous tags.

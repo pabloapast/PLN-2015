@@ -11,7 +11,6 @@ Options:
 from collections import defaultdict
 from docopt import docopt
 import pickle
-from tagging.scripts.stats import top10_tags
 import sys
 
 from corpus.ancora import SimpleAncoraCorpusReader
@@ -40,8 +39,8 @@ if __name__ == '__main__':
     sents = list(corpus.tagged_sents())
 
     hits, hits_k, hits_u, total, total_k, total_u = 0, 0, 0, 0, 0, 0
-    confusion_matrix = defaultdict(lambda : defaultdict(int))
-    words_by_tags = defaultdict(lambda : defaultdict(int))
+    confusion_matrix = defaultdict(lambda: defaultdict(int))
+    words_by_tags = defaultdict(lambda: defaultdict(int))
     n = len(sents)
     for i, sent in enumerate(sents):
         word_sent, gold_tag_sent = zip(*sent)
@@ -91,12 +90,11 @@ if __name__ == '__main__':
 
     print(('     ' + '{}     '*len(top10_tags)).format(*top10_tags))
     for gold_tag in top10_tags:
-        print(gold_tag  + '  ', end='')
+        print(gold_tag + '  ', end='')
         for model_tag in top10_tags:
             if gold_tag == model_tag:
                 print('  {}    '.format('-'), end='')
             else:
-                print('{:2.2f}%  '.format(
-                       confusion_matrix.get(gold_tag).get(model_tag, 0) /\
-                       total), end='')
+                print('{:2.2f}%  '.format(confusion_matrix.get(gold_tag).
+                      get(model_tag, 0) / total), end='')
         print('')

@@ -3,8 +3,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.svm import LinearSVC
 from sklearn.pipeline import Pipeline
-from tagging.features import History, word_lower, word_istitle, word_isupper,\
-                             word_isdigit, prev_tags, NPrevTags, PrevWord
+from tagging.features import (History, word_lower, word_istitle, word_isupper,
+                              word_isdigit, prev_tags, NPrevTags, PrevWord)
 from tagging.hmm import START
 
 
@@ -37,12 +37,11 @@ class MEMM:
         for i in range(1, self.n):
             features.append(NPrevTags(i))
         # All the basic features except prev_tags
-        for ft in basic_features[:-1]:  # REVISAR ESTO
+        for ft in basic_features[:-1]:
             features.append(PrevWord(ft))
 
         self.hist_clf = hist_clf = Pipeline([('vect', Vectorizer(features)),
-                                             ('clf', classifiers[classifier]),
-                                            ])
+                                             ('clf', classifiers[classifier])])
         hist_clf = hist_clf.fit(self.sents_histories(tagged_sents),
                                 self.sents_tags(tagged_sents))
 
@@ -93,7 +92,6 @@ class MEMM:
         """
         sent, tags = zip(*tagged_sent)
         return list(tags)
-
 
     def tag(self, sent):
         """Tag a sentence.

@@ -117,7 +117,6 @@ class HMM:
                 break
         return p_y + p_x
 
-
     def tag(self, sent):
         """Returns the most probable tagging for a sentence.
 
@@ -147,7 +146,7 @@ class ViterbiTagger:
 
         # Initialization: pi(0, *, ..., *) = 1
         pi = self._pi = {}
-        pi[0] = { (START,) * (n - 1): (log2(1), []) }
+        pi[0] = {(START,) * (n - 1): (log2(1), [])}
 
         for k in range(1, N + 1):
             pi[k] = {}
@@ -164,59 +163,20 @@ class ViterbiTagger:
                         new_prob = (prob + log2(trans_p) + log2(out_prob))
                         new_prev_tags = (prev_tags + (tag,))[1:]
                         # if max_prob < new_prob:
-                        if new_prev_tags not in pi[k] or new_prob > pi[k][new_prev_tags][0]:
+                        if new_prev_tags not in pi[k] or\
+                           new_prob > pi[k][new_prev_tags][0]:
                             # max_prob = new_prob
                             pi[k][new_prev_tags] = (new_prob, tag_seq + [tag])
 
+        tagging = None
         max_prob = float('-inf')
         for prev_tags, (prob, tag_seq) in pi[N].items():
             if max_prob < prob:
                 max_prob = prob
                 tagging = tag_seq
-        # print('\n\npi: {}'.format(pi))
 
+        assert tagging is not None
         return tagging
-
-        # m = len(sent)
-        # hmm = self._hmm
-        # n = hmm.n
-        # tagset = hmm.tagset()
-
-        # self._pi = pi = {}
-        # pi[0] = {
-        #     ('<s>',) * (n - 1): (0.0, [])
-        # }
-
-        # for i, w in zip(range(1, m + 1), sent):
-        #     pi[i] = {}
-
-        #     # iterate over tags that can follow with out_prob > 0.0
-        #     tag_out_probs = [(t, hmm.out_prob(w, t)) for t in tagset]
-        #     for t, out_p in [(t, p) for t, p in tag_out_probs if p > 0.0]:
-        #         # iterate over non-zeros in the previous column
-        #         for prev, (lp, tag_sent) in pi[i - 1].items():
-        #             trans_p = hmm.trans_prob(t, prev)
-        #             if trans_p > 0.0:
-        #                 new_prev = (prev + (t,))[1:]
-        #                 new_lp = lp + log2(out_p) + log2(trans_p)
-        #                 # is it the max?
-        #                 if new_prev not in pi[i] or new_lp > pi[i][new_prev][0]:
-        #                     # XXX: what if equal?
-        #                     pi[i][new_prev] = (new_lp, tag_sent + [t])
-
-        # # last step: generate STOP
-        # max_lp = float('-inf')
-        # result = None
-        # for prev, (lp, tag_sent) in pi[m].items():
-        #     p = hmm.trans_prob('</s>', prev)
-        #     if p > 0.0:
-        #         new_lp = lp + log2(p)
-        #         if new_lp > max_lp:
-        #             max_lp = new_lp
-        #             result = tag_sent
-
-        # return result
-
 
 
 class MLHMM(HMM):
@@ -238,7 +198,7 @@ class MLHMM(HMM):
         self.tags_set = tags_set = []
 
         # Used to compute out prob
-        pairs_count = defaultdict(lambda : defaultdict(int))
+        pairs_count = defaultdict(lambda: defaultdict(int))
         # Compute counts of tags and words, vocabulary and tags_set
         for tagged_sent in tagged_sents:
             words, tags = [], []

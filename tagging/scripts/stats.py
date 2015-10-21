@@ -27,7 +27,7 @@ if __name__ == '__main__':
     # For each word, returns a list of their tags
     tags_by_word = defaultdict(set)
     # For each tag, returns a dict with their words and occurrence
-    words_by_tags = defaultdict(lambda : defaultdict(int))
+    words_by_tags = defaultdict(lambda: defaultdict(int))
     for sent in sents:
         for w, t in sent:
             tags_by_word[w].add(t)
@@ -69,5 +69,7 @@ if __name__ == '__main__':
                               tags_by_word.items() if level == len(t_list))
         top5_words = sorted(filtered_words.keys(),
                             key=lambda w: word_frequence[w], reverse=True)[:5]
-        print(' {} tag  \t{} - {:2.2f}% = {}'.format(level, len(filtered_words),
-              (len(filtered_words) / len(words_set)) * 100, top5_words))
+        print(' {} tag  \t{} - {:2.2f}% = {}'.format(level,
+              len(filtered_words),
+              (len(filtered_words) / len(words_set)) * 100,
+              top5_words))
