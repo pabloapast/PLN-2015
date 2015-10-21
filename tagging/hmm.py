@@ -162,16 +162,18 @@ class ViterbiTagger:
                     trans_p = hmm.trans_prob(tag, prev_tags)
                     if trans_p > 0:
                         new_prob = (prob + log2(trans_p) + log2(out_prob))
-                        if max_prob < new_prob:
-                            max_prob = new_prob
-                            new_prev_tags = prev_tags[1:] + (tag,)
-                            pi[k][new_prev_tags] = (max_prob, tag_seq + [tag])
+                        new_prev_tags = (prev_tags + (tag,))[1:]
+                        # if max_prob < new_prob:
+                        if new_prev_tags not in pi[k] or new_prob > pi[k][new_prev_tags][0]:
+                            # max_prob = new_prob
+                            pi[k][new_prev_tags] = (new_prob, tag_seq + [tag])
 
         max_prob = float('-inf')
         for prev_tags, (prob, tag_seq) in pi[N].items():
             if max_prob < prob:
                 max_prob = prob
                 tagging = tag_seq
+        # print('\n\npi: {}'.format(pi))
 
         return tagging
 
@@ -255,8 +257,8 @@ class MLHMM(HMM):
 
         self.vocabulary = set(vocabulary)
         self.tags_set = set(tags_set)
-        self.vocabulary_size = len(vocabulary)
-        self.tagset_size = len(tags_set) + 1 # XXX DEBERIA CONTAR STOP??
+        self.vocabulary_size = len(self.vocabulary)
+        self.tagset_size = len(self.tags_set)
 
         # Compute out probabilities
         for tag, words_with_count in pairs_count.items():
