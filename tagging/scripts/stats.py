@@ -7,11 +7,12 @@ Usage:
 Options:
   -h --help     Show this screen.
 """
-from collections import defaultdict
+from collections import defaultdict, Counter
 from docopt import docopt
 
 from corpus.ancora import SimpleAncoraCorpusReader
 
+top10_tags = None
 
 if __name__ == '__main__':
     opts = docopt(__doc__)
@@ -27,15 +28,13 @@ if __name__ == '__main__':
     tags_by_word = defaultdict(set)
     # For each tag, returns a dict with their words and occurrence
     words_by_tags = defaultdict(lambda : defaultdict(int))
-    word_frequence = defaultdict(int)
     for sent in sents:
-        # words, tags = zip(*sent)
         for w, t in sent:
             tags_by_word[w].add(t)
             words_by_tags[t][w] += 1
-            word_frequence[w] += 1
             words_list.append(w)
             tags_list.append(t)
+    word_frequence = Counter(words_list)  # Count frequency of words
     words_set = set(words_list)
     tags_set = set(tags_list)
 
