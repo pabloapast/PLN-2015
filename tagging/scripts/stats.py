@@ -12,7 +12,6 @@ from docopt import docopt
 
 from corpus.ancora import SimpleAncoraCorpusReader
 
-top10_tags = None
 
 if __name__ == '__main__':
     opts = docopt(__doc__)
