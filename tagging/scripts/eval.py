@@ -1,10 +1,11 @@
 """Evaulate a tagger.
 
 Usage:
-  eval.py -i <file>
+  eval.py [-c] -i <file>
   eval.py -h | --help
 
 Options:
+  -c            Whether show confusion matrix
   -i <file>     Tagging model file.
   -h --help     Show this screen.
 """
@@ -55,12 +56,12 @@ if __name__ == '__main__':
                       if not model.unknown(word_sent[j])]
 
         # Make confusion matrix
-        for m, g in zip(model_tag_sent, gold_tag_sent):
-            confusion_matrix[g][m] += m != g
-
-        # For each tag, make a dict with their words and occurrence
-        for word, tag in sent:
-            words_by_tags[tag][word] += 1
+        if opts['-c']:
+            for m, g in zip(model_tag_sent, gold_tag_sent):
+                confusion_matrix[g][m] += m != g
+            # For each tag, make a dict with their words and occurrence
+            for word, tag in sent:
+                words_by_tags[tag][word] += 1
 
         hits += sum(hits_sent)
         total += len(sent)
@@ -71,7 +72,7 @@ if __name__ == '__main__':
         acc_known = float(hits_k) / total_k
         acc_unknown = (float(hits) - float(hits_k)) / (total - total_k)
         progress('{:3.1f}% ({:2.2f}% / {:2.2f}% / {:2.2f}%)'.format(
-                 float(i) * 100 / n, acc * 100, acc_known * 100,
+                 i * 100 / n, acc * 100, acc_known * 100,
                  acc_unknown * 100))
 
     acc = float(hits) / total
@@ -83,18 +84,20 @@ if __name__ == '__main__':
     print('Accuracy known words: {:2.2f}%'.format(acc_known * 100))
     print('Accuracy unknown words: {:2.2f}%'.format(acc_unknown * 100))
 
-    # Frequent tags
-    top10_tags = sorted(words_by_tags.keys(),
-                        key=lambda k: sum(words_by_tags[k].values()),
-                        reverse=True)[:10]
+    # Print confusion matrix
+    if opts['-c']:
+        # Frequent tags
+        top10_tags = sorted(words_by_tags.keys(),
+                            key=lambda k: sum(words_by_tags[k].values()),
+                            reverse=True)[:10]
 
-    print(('     ' + '{}     '*len(top10_tags)).format(*top10_tags))
-    for gold_tag in top10_tags:
-        print(gold_tag + '  ', end='')
-        for model_tag in top10_tags:
-            if gold_tag == model_tag:
-                print('  {}    '.format('-'), end='')
-            else:
-                print('{:2.2f}%  '.format(confusion_matrix.get(gold_tag).
-                      get(model_tag, 0) / total), end='')
-        print('')
+        print(('     ' + '{}     '*len(top10_tags)).format(*top10_tags))
+        for gold_tag in top10_tags:
+            print(gold_tag + '  ', end='')
+            for model_tag in top10_tags:
+                if gold_tag == model_tag:
+                    print('  {}    '.format('-'), end='')
+                else:
+                    print('{:2.2f}%  '.format(confusion_matrix.get(gold_tag).
+                          get(model_tag, 0) / total), end='')
+            print('')

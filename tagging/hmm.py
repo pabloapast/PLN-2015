@@ -162,10 +162,8 @@ class ViterbiTagger:
                     if trans_p > 0:
                         new_prob = (prob + log2(trans_p) + log2(out_prob))
                         new_prev_tags = (prev_tags + (tag,))[1:]
-                        # if max_prob < new_prob:
                         if new_prev_tags not in pi[k] or\
                            new_prob > pi[k][new_prev_tags][0]:
-                            # max_prob = new_prob
                             pi[k][new_prev_tags] = (new_prob, tag_seq + [tag])
 
         tagging = None
@@ -249,7 +247,6 @@ class MLHMM(HMM):
         """
         if prev_tags is None:
             prev_tags = []
-        assert len(prev_tags) == self.n - 1, prev_tags
 
         tags = list(prev_tags) + [tag]
         prob = -1
