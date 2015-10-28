@@ -29,7 +29,7 @@ class CKYParser:
             productions = grammar.productions()
             for prod in productions:
                 if word in prod.rhs():
-                    X = prod.lhs()
+                    X = str(prod.lhs())
                     _pi[i, i][X] = prod.logprob()
                     _bp[i, i][X] = Tree(X, [word])
 
@@ -40,21 +40,22 @@ class CKYParser:
                 _bp[i, j] = {}
                 productions = grammar.productions()
                 for prod in productions:
-                    X = prod.lhs()
+                    X = str(prod.lhs())
                     if len(prod.rhs()) == 2:
-                        Y, Z = prod.rhs()
+                        Y, Z = str(prod.rhs()[0]), str(prod.rhs()[1])
                         logprob = prod.logprob()
                         for s in range(i, j):  # OJO: revisar este range
                             if Y in _pi[i, s].keys() and Z in _pi[s + 1, j].keys():
                                 new_prob = logprob + _pi[i, s][Y] +\
                                            _pi[s + 1, j][Z]
                                 if X not in _pi[i, j] or new_prob > _pi[i, j][X]:
-                                   _pi[i, j][X] = new_prob
-                                   t1 = _bp[i, i].get(X)
-                                   t2 = _bp[j, j].get(X)
-                                   _bp[i, j][X] = Tree(X, [t1, t2])
-
-        return _pi[(1, n)][self.grammar.start()], _bp[(1, n)][self.grammar.start()]
+                                    _pi[i, j][X] = new_prob
+                                    t = []
+                                    for k in range(i, j + 1):
+                                        t += list(_bp[k, k].values())
+                                    _bp[i, j][X] = Tree(X, t)
+        print(_bp)
+        return _pi[(1, n)][str(self.grammar.start())], _bp[(1, n)][str(self.grammar.start())]
 
 
 
