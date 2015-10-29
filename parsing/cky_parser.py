@@ -55,11 +55,3 @@ class CKYParser:
                                     _bp[i, j][X] = Tree(X, t)
 
         return _pi[1, n][self.start], _bp[1, n][self.start]
-
-
-
-
-
-
-
-
