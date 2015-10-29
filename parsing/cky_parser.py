@@ -10,6 +10,7 @@ class CKYParser:
         assert grammar.is_binarised()
 
         self.grammar = grammar
+        self.start = str(self.grammar.start())
         # self.productions = {}
 
 
@@ -33,8 +34,8 @@ class CKYParser:
                     _pi[i, i][X] = prod.logprob()
                     _bp[i, i][X] = Tree(X, [word])
 
-        for l in range(1, n):  # OJO: revisar si aca no falta un -1
-            for i in range(1, n - l + 1):  # OJO: revisar si aca no falta un -1
+        for l in range(1, n):
+            for i in range(1, n - l + 1):
                 j = i + l
                 _pi[i, j] = {}
                 _bp[i, j] = {}
@@ -42,20 +43,18 @@ class CKYParser:
                 for prod in productions:
                     X = str(prod.lhs())
                     if len(prod.rhs()) == 2:
-                        Y, Z = str(prod.rhs()[0]), str(prod.rhs()[1])
+                        Y, Z = prod.rhs()
+                        Y, Z = str(Y), str(Z)
                         logprob = prod.logprob()
                         for s in range(i, j):  # OJO: revisar este range
                             if Y in _pi[i, s].keys() and Z in _pi[s + 1, j].keys():
-                                new_prob = logprob + _pi[i, s][Y] +\
-                                           _pi[s + 1, j][Z]
+                                new_prob = logprob + _pi[i, s][Y] + _pi[s + 1, j][Z]
                                 if X not in _pi[i, j] or new_prob > _pi[i, j][X]:
                                     _pi[i, j][X] = new_prob
-                                    t = []
-                                    for k in range(i, j + 1):
-                                        t += list(_bp[k, k].values())
+                                    t = list(_bp[i, s].values()) + list(_bp[s + 1, j].values())
                                     _bp[i, j][X] = Tree(X, t)
-        print(_bp)
-        return _pi[(1, n)][str(self.grammar.start())], _bp[(1, n)][str(self.grammar.start())]
+
+        return _pi[1, n][self.start], _bp[1, n][self.start]
 
 
 
