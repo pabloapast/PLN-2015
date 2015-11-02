@@ -1,4 +1,5 @@
-from nltk.grammar import induce_pcfg, nonterminals
+from nltk.grammar import induce_pcfg, Nonterminal
+from nltk.tree import Tree
 
 from parsing.cky_parser import CKYParser
 from parsing.util import lexicalize, unlexicalize
@@ -19,26 +20,32 @@ class UPCFG:
             cnf_tree = sent.copy(deep=True)
             cnf_tree = unlexicalize(cnf_tree)
             cnf_tree.chomsky_normal_form()
-            cnf_tree.collapse_unary()
+            cnf_tree.collapse_unary(collapsePOS=True)
             cnf_prods += cnf_tree.productions()
 
-        start = nonterminals(start)[0]
-        self.grammar = induce_pcfg(start, cnf_prods)  # UPCFG grammar
+        self._grammar = induce_pcfg(Nonterminal(start), cnf_prods)  # UPCFG grammar
 
     def productions(self):
         """Returns the list of UPCFG probabilistic productions.
         """
-        return self.grammar.productions()
+        return self._grammar.productions()
 
     def parse(self, tagged_sent):
         """Parse a tagged sentence.
 
         tagged_sent -- the tagged sentence (a list of pairs (word, tag)).
         """
+        _grammar = self._grammar
+        parser = CKYParser(_grammar)  # CKY parser
         sent, tags = zip(*tagged_sent)
-        parser = CKYParser(self.grammar)  # CKY parser
         log_p, tree = parser.parse(tags)
-        tree = lexicalize(tree, sent)
+
+        if tree is None:  # Build a flat tree
+            subtrees = []
+            for word, tag in tagged_sent:
+                subtrees.append(Tree(tag, [word]))
+            tree = Tree(_grammar.start().symbol(), subtrees)
+        else:
+            tree = lexicalize(tree, sent)
 
         return tree
-
