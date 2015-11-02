@@ -42,22 +42,22 @@ if __name__ == '__main__':
 
     parsed_sents = None
     m = opts['-m']
-    if m != '':
-        m = eval(m)
-        parsed_sents = [sent for sent in corpus.parsed_sents()
-                        if len(sent) <= m]
-    else:
+    if m is None:
         parsed_sents = list(corpus.parsed_sents())
+    else:
+        m = eval(m)
+        parsed_sents = [tree for tree in corpus.parsed_sents()
+                        if len(tree.leaves()) <= m]
 
     print('Parsing...')
-    hits, total_gold, total_model = 0, 0, 0
+    hits, total_gold, total_model, u_hits = 0, 0, 0, 0
     n = len(parsed_sents)
 
     max_parsed_sents = opts['-n']
-    if max_parsed_sents != '':
-        max_parsed_sents = eval(max_parsed_sents)
-    else:
+    if max_parsed_sents is None:
         max_parsed_sents = n
+    else:
+        max_parsed_sents = eval(max_parsed_sents)
 
     format_str = '{:3.1f}% ({}/{}) (P={:2.2f}%, R={:2.2f}%, F1={:2.2f}%)'
     progress(format_str.format(0.0, 0, n, 0.0, 0.0, 0.0))
@@ -81,8 +81,8 @@ if __name__ == '__main__':
             f1 = 2 * prec * rec / (prec + rec)
 
             # compute unlabeled scores
-            gold_interval = [i, j for n, i, j in gold_spans]
-            model_interval = [i, j for n, i, j in model_spans]
+            gold_interval = set([(i, j) for n, i, j in gold_spans])
+            model_interval = set([(i, j) for n, i, j in model_spans])
             u_hits += len(gold_interval & model_interval)
 
             # compute unlabeled partial results
@@ -90,7 +90,8 @@ if __name__ == '__main__':
             u_rec = float(u_hits) / total_gold * 100
             u_f1 = 2 * u_prec * u_rec / (u_prec + u_rec)
 
-            progress(format_str.format(float(i+1) * 100 / n, i+1, n, prec, rec, f1, u_prec, u_rec, u_f1))
+            progress(format_str.format(float(i+1) * 100 / n, i+1, n, prec, rec,
+                     f1))
         else:
             break
 
@@ -104,10 +105,3 @@ if __name__ == '__main__':
     print('  Precision: {:2.2f}% '.format(u_prec))
     print('  Recall: {:2.2f}% '.format(u_rec))
     print('  F1: {:2.2f}% '.format(u_f1))
-
-
-
-
-
-
-
