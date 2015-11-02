@@ -8,6 +8,23 @@ from nltk.grammar import PCFG
 from parsing.cky_parser import CKYParser
 
 
+# AMBIGUA
+# sent = 'the fast car mechanic'
+
+# grammar = PCFG.fromstring(
+#     """
+#         NP -> D Ñ           [1.0]
+#         Ñ -> Ñ Ñ            [0.2]
+#         Ñ -> JJ Ñ           [0.3]
+#         Ñ -> NN Ñ           [0.4]
+#         Ñ -> NN             [0.1]
+#         D -> the            [1.0]
+#         JJ -> fast          [1.0]
+#         NN -> car           [0.6]
+#         NN -> mechanic      [0.4]
+#     """)
+
+
 class TestCKYParser(TestCase):
 
     def test_parse(self):
