@@ -1,4 +1,5 @@
 from nltk.tree import Tree
+import time
 
 
 class CKYParser:
@@ -9,59 +10,78 @@ class CKYParser:
         """
         assert grammar.is_binarised()
 
-        self.grammar = grammar
-        # self.productions = {}
+        self._grammar = _grammar = grammar
+
+        # For each token returns a dict of the nonterminal associated
+        # and his log probability
+        self._lex_prods = _lex_prods = {}
+        # For each token returns a dict of trees with the woken as his leaf
+        # and the nonterminal as the parent node
+        self._lex_trees = _lex_trees = {}
+        for p in _grammar.productions():
+            if p.is_lexical():
+                lhs, rhs = p.lhs().symbol(), p.rhs()[0]
+                _lex_prods[rhs], _lex_trees[rhs] = {}, {}
+
+                _lex_prods[rhs][lhs] = p.logprob()
+                _lex_trees[rhs][lhs] = Tree(lhs, [rhs])
+
+        self._non_lex_prods = [prod for prod in _grammar.productions()
+                               if prod.is_nonlexical()]
 
     def parse(self, sent):
         """Parse a sequence of terminals.
 
         sent -- the sequence of terminals.
         """
+        _grammar = self._grammar
+        _lex_prods = self._lex_prods
+        _lex_trees = self._lex_trees
+        _non_lex_prods = self._non_lex_prods
+        start = _grammar.start().symbol()
+
         self._pi = _pi = {}
         self._bp = _bp = {}
-        grammar = self.grammar
-        start = str(grammar.start())
+
         n = len(sent)
 
+        start1 = time.time()  # ~0.00019 segundos
         for i, word in enumerate(sent, start=1):
-            _pi[i, i] = {}
-            _bp[i, i] = {}
-            productions = grammar.productions()
-            for prod in productions:
-                if word in prod.rhs():
-                    X = str(prod.lhs())
-                    _pi[i, i][X] = prod.logprob()
-                    _bp[i, i][X] = Tree(X, [word])
+            _pi[i, i] = _lex_prods.get(word)
+            _bp[i, i] = {key: item.copy(deep=True)
+                         for key, item in _lex_trees.get(word).items()}
+        print('start1 = ', time.time() - start1)
 
+        start2 = time.time()  # 25~2 segundos
         for l in range(1, n):
             for i in range(1, n - l + 1):
                 j = i + l
                 _pi[i, j] = {}
                 _bp[i, j] = {}
-                productions = grammar.productions()
-                for prod in productions:
-                    X = str(prod.lhs())
-                    if len(prod.rhs()) == 2:
-                        Y, Z = prod.rhs()
-                        Y, Z = str(Y), str(Z)
+                for prod in _non_lex_prods:
+                    X = prod.lhs().symbol()
+                    if len(prod.rhs()) == 2:  # Que pasa si es 1 ?! Deberia existir con 1?
+                    # assert len(prod.rhs()) == 2, prod
+                        Y, Z = prod.rhs()[0].symbol(), prod.rhs()[1].symbol()
                         logprob = prod.logprob()
                         for s in range(i, j):
+                            # Y_logprob = _pi[i, s].get(Y)
+                            # Z_logprob = _pi[s + 1, j].get(Z)
+                            # if Y_logprob is not None and Z_logprob is not None:
+                            #     new_prob = logprob + Y_logprob +\
+                            #                Z_logprob
                             if Y in _pi[i, s].keys() and Z in _pi[s + 1, j].keys():
-                                new_prob = logprob + _pi[i, s][Y] + _pi[s + 1, j][Z]
+                                new_prob = logprob + _pi[i, s][Y] +\
+                                           _pi[s + 1, j][Z]
                                 if X not in _pi[i, j] or new_prob > _pi[i, j][X]:
                                     _pi[i, j][X] = new_prob
-                                    sub_trees = list(_bp[i, s].values()) + list(_bp[s + 1, j].values())
+                                    sub_trees = list(_bp[i, s].values()) +\
+                                                list(_bp[s + 1, j].values())
                                     _bp[i, j][X] = Tree(X, sub_trees)
-
-        # Fails to parse
-        if _bp[1, n] == {}:
-            _pi[1, n][start] = 0  # XXX revisar si va 0 u otra cosa !!
-            sub_trees = []
-            for k in range(1, n + 1):
-                sub_trees += list(_bp[k, k].values())
-            _bp[1, n][start] = Tree(start, sub_trees)
+        print('start2 = ', time.time() - start2)
 
         # print('Pi = ' , _pi, '\n\n')
         # print('Bp = ', _bp, '\n\n')
 
-        return _pi[1, n][start], _bp[1, n][start]
+        # Que valor de pi retornar si no encontro un parsing ?!
+        return _pi[1, n].get(start), _bp[1, n].get(start)
