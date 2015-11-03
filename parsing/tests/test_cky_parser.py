@@ -126,3 +126,57 @@ class TestCKYParser(TestCase):
                 prob1 = d1[k2]
                 prob2 = d2[k2]
                 self.assertAlmostEqual(prob1, prob2)
+
+    def test_ambigous_sent(self):
+        grammar = PCFG.fromstring(  # t1.productions()
+            """
+                NP -> D Ñ           [1.0]
+                Ñ -> JJ Ñ           [0.5]
+                Ñ -> NN Ñ           [0.3]
+                Ñ -> NN             [0.2]
+                D -> 'the'          [1.0]
+                JJ -> 'fast'        [1.0]
+                NN -> 'car'         [0.6]
+                NN -> 'mechanic'    [0.4]
+            """)
+
+        parser = CKYParser(grammar)
+
+        lp, t = parser.parse('the fast car mechanic'.split())
+
+        t1 = Tree.fromstring(
+            """
+                (NP
+                    (D the)
+                    (Ñ
+                        (JJ fast)
+                        (Ñ
+                            (NN car)
+                            (Ñ
+                                (NN mechanic)
+                            )
+                        )
+                    )
+                )
+
+            """)
+
+        # t2 = Tree.fromstring(
+        #     """
+        #         (NP
+        #             (D the)
+        #             (Ñ
+        #                 (Ñ
+        #                     (JJ fast)
+        #                     (Ñ
+        #                         (NN car)
+        #                     )
+        #                 )
+        #                 (Ñ
+        #                     (NN mechanic)
+        #                 )
+        #             )
+        #         )
+        #     """)
+
+        self.assertEqual(t, t1)
