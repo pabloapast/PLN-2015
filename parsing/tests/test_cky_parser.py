@@ -128,12 +128,20 @@ class TestCKYParser(TestCase):
                 self.assertAlmostEqual(prob1, prob2)
 
     def test_ambigous_sent(self):
-        grammar = PCFG.fromstring(  # t1.productions()
+        grammar = PCFG.fromstring(
             """
-                NP -> D Ñ           [1.0]
-                Ñ -> JJ Ñ           [0.5]
-                Ñ -> NN Ñ           [0.3]
-                Ñ -> NN             [0.2]
+                NP -> D Ñ           [0.6]
+                NP -> D NN          [0.4]
+
+                Ñ -> JJ Ñ           [0.2]
+                Ñ -> JJ NN          [0.08]
+                Ñ -> NN Ñ           [0.07]
+                Ñ -> NN NN          [0.09]
+                Ñ -> Ñ Ñ            [0.11]
+                Ñ -> Ñ NN           [0.13]
+                Ñ -> NN Ñ           [0.15]
+                Ñ -> NN NN          [0.17]
+
                 D -> 'the'          [1.0]
                 JJ -> 'fast'        [1.0]
                 NN -> 'car'         [0.6]
@@ -161,22 +169,22 @@ class TestCKYParser(TestCase):
 
             """)
 
-        # t2 = Tree.fromstring(
-        #     """
-        #         (NP
-        #             (D the)
-        #             (Ñ
-        #                 (Ñ
-        #                     (JJ fast)
-        #                     (Ñ
-        #                         (NN car)
-        #                     )
-        #                 )
-        #                 (Ñ
-        #                     (NN mechanic)
-        #                 )
-        #             )
-        #         )
-        #     """)
+        t2 = Tree.fromstring(
+            """
+                (NP
+                    (D the)
+                    (Ñ
+                        (Ñ
+                            (JJ fast)
+                            (Ñ
+                                (NN car)
+                            )
+                        )
+                        (Ñ
+                            (NN mechanic)
+                        )
+                    )
+                )
+            """)
 
         self.assertEqual(t, t1)

@@ -64,6 +64,9 @@ class CKYParser:
         # print('start1 = ', time.time() - start1)
 
         # start2 = time.time()  # 25~2 segundos
+
+        # print('_bi_prods_d = ', _bi_prods_d, '\n\n')
+
         for l in range(1, n):
             for i in range(1, n - l + 1):
                 j = i + l
@@ -73,8 +76,18 @@ class CKYParser:
                 for s in range(i, j):
                     for A in _pi[i, s].keys():
                         for B in _pi[s + 1, j].keys():
+                            # print('Pi = ' , _pi)
+                            # print('Bp = ', _bp)
+                            # print('_pi[i, s] = ', _pi[i, s])
+                            # print('_pi[s+1, j] = ', _pi[s+1, j])
+                            # print('A, B = ', A, B)
+                            # print('_bi_prods_d.keys() = ', _bi_prods_d.keys())
+                            # print('\n\n')
+                            # print('Pi = ' , _pi, '\n\n')
+                            # print('Bp = ', _bp, '\n\n')
                             if (A, B) in _bi_prods_d.keys():
                                 for X, logprob in _bi_prods_d[A, B].items():
+                                    # print('_bi_prods_d[A, B] = ', _bi_prods_d[A, B], '\n')
                                     new_prob = logprob + _pi[i, s][A] + _pi[s + 1, j][B]
 
                                     if X not in _pi[i, j] or new_prob > _pi[i, j][X]:
@@ -106,8 +119,8 @@ class CKYParser:
                 #                 _bp[i, j][X] = Tree(X, sub_trees)
         # print('start2 = ', time.time() - start2)
 
-        # print('Pi = ' , _pi, '\n\n')
-        # print('Bp = ', _bp, '\n\n')
+        print('Pi = ' , _pi, '\n\n')
+        print('Bp = ', _bp, '\n\n')
 
         # Que valor de pi retornar si no encontro un parsing ?!
         return _pi[1, n].get(start), _bp[1, n].get(start)
