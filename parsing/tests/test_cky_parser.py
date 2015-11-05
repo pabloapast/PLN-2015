@@ -8,23 +8,6 @@ from nltk.grammar import PCFG
 from parsing.cky_parser import CKYParser
 
 
-# AMBIGUA
-# sent = 'the fast car mechanic'
-
-# grammar = PCFG.fromstring(
-#     """
-#         NP -> D Ñ           [1.0]
-#         Ñ -> Ñ Ñ            [0.2]
-#         Ñ -> JJ Ñ           [0.3]
-#         Ñ -> NN Ñ           [0.4]
-#         Ñ -> NN             [0.1]
-#         D -> the            [1.0]
-#         JJ -> fast          [1.0]
-#         NN -> car           [0.6]
-#         NN -> mechanic      [0.4]
-#     """)
-
-
 class TestCKYParser(TestCase):
 
     def test_parse(self):
@@ -152,7 +135,29 @@ class TestCKYParser(TestCase):
 
         lp, t = parser.parse('the fast car mechanic'.split())
 
-        t1 = Tree.fromstring(
+        # check chart
+        pi = {
+            (1, 1): {'D': log2(1.0)},
+            (2, 2): {'JJ': log2(1.0)},
+            (3, 3): {'NN': log2(0.6)},
+            (4, 4): {'NN': log2(0.4)},
+
+
+        }
+        self.assertEqualPi(parser._pi, pi)
+
+        # check partial results
+        bp = {
+            (1, 1): {'D': Tree.fromstring("(D the)")},
+            (2, 2): {'JJ': Tree.fromstring("(JJ fast)")},
+            (3, 3): {'NN': Tree.fromstring("(NN car)")},
+            (4, 4): {'NN': Tree.fromstring("(NN mechanic)")},
+
+
+        }
+        self.assertEqual(parser._bp, bp)
+
+        t2 = Tree.fromstring(
             """
                 (NP
                     (D the)
@@ -160,31 +165,17 @@ class TestCKYParser(TestCase):
                         (JJ fast)
                         (Ñ
                             (NN car)
-                            (Ñ
-                                (NN mechanic)
-                            )
-                        )
-                    )
-                )
-
-            """)
-
-        t2 = Tree.fromstring(
-            """
-                (NP
-                    (D the)
-                    (Ñ
-                        (Ñ
-                            (JJ fast)
-                            (Ñ
-                                (NN car)
-                            )
-                        )
-                        (Ñ
                             (NN mechanic)
                         )
                     )
                 )
             """)
+        self.assertEqual(t, t2)
 
-        self.assertEqual(t, t1)
+        lp2 = log2(1)
+        self.assertAlmostEqual(lp, lp2)
+
+
+
+
+
