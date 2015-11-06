@@ -142,7 +142,14 @@ class TestCKYParser(TestCase):
             (3, 3): {'NN': log2(0.6)},
             (4, 4): {'NN': log2(0.4)},
 
+            (1, 2): {},
+            (2, 3): {'Ñ': log2(0.6 * 0.08 * 1.0)},
+            (3, 4): {'Ñ': log2(0.17 * 0.6 * 0.4)},
 
+            (1, 3): {'NP': log2(0.6 * (0.08 * 1.0 * 0.6))},
+            (2, 4): {'Ñ': log2((0.17 * 0.6 * 0.4) * 0.2 * 1.0)},
+
+            (1, 4): {'NP': log2(0.6 * (0.17 * 0.6 * 0.4) * 0.2 * 1.0)},
         }
         self.assertEqualPi(parser._pi, pi)
 
@@ -153,7 +160,25 @@ class TestCKYParser(TestCase):
             (3, 3): {'NN': Tree.fromstring("(NN car)")},
             (4, 4): {'NN': Tree.fromstring("(NN mechanic)")},
 
+            (1, 2): {},
+            (2, 3): {'Ñ': Tree.fromstring("(Ñ (JJ fast) (NN car))")},
+            (3, 4): {'Ñ': Tree.fromstring("(Ñ (NN car) (NN mechanic))")},
 
+            (1, 3): {'NP': Tree.fromstring("""(NP
+                                                  (D the)
+                                                  (Ñ (JJ fast) (NN car)))""")},
+            (2, 4): {'Ñ': Tree.fromstring("""(Ñ
+                                                 (JJ fast)
+                                                 (Ñ (NN car)
+                                                    (NN mechanic)))""")},
+
+            (1, 4): {'NP': Tree.fromstring("""(NP
+                                                  (D the)
+                                                  (Ñ
+                                                     (JJ fast)
+                                                     (Ñ
+                                                        (NN car)
+                                                        (NN mechanic))))""")},
         }
         self.assertEqual(parser._bp, bp)
 
@@ -172,10 +197,5 @@ class TestCKYParser(TestCase):
             """)
         self.assertEqual(t, t2)
 
-        lp2 = log2(1)
+        lp2 = log2(0.6 * (0.17 * 0.6 * 0.4) * 0.2 * 1.0)
         self.assertAlmostEqual(lp, lp2)
-
-
-
-
-
