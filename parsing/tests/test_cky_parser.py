@@ -99,17 +99,6 @@ class TestCKYParser(TestCase):
         lp2 = log2(1.0 * 0.6 * 1.0 * 0.9 * 1.0 * 1.0 * 0.4 * 0.1 * 1.0)
         self.assertAlmostEqual(lp, lp2)
 
-    def assertEqualPi(self, pi1, pi2):
-        self.assertEqual(set(pi1.keys()), set(pi2.keys()))
-
-        for k in pi1.keys():
-            d1, d2 = pi1[k], pi2[k]
-            self.assertEqual(d1.keys(), d2.keys(), k)
-            for k2 in d1.keys():
-                prob1 = d1[k2]
-                prob2 = d2[k2]
-                self.assertAlmostEqual(prob1, prob2)
-
     def test_ambigous_sent(self):
         grammar = PCFG.fromstring(
             """
@@ -199,3 +188,14 @@ class TestCKYParser(TestCase):
 
         lp2 = log2(0.6 * (0.17 * 0.6 * 0.4) * 0.2 * 1.0)
         self.assertAlmostEqual(lp, lp2)
+
+    def assertEqualPi(self, pi1, pi2):
+        self.assertEqual(set(pi1.keys()), set(pi2.keys()))
+
+        for k in pi1.keys():
+            d1, d2 = pi1[k], pi2[k]
+            self.assertEqual(d1.keys(), d2.keys(), k)
+            for k2 in d1.keys():
+                prob1 = d1[k2]
+                prob2 = d2[k2]
+                self.assertAlmostEqual(prob1, prob2)
