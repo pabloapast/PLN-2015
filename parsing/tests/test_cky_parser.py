@@ -49,9 +49,12 @@ class TestCKYParser(TestCase):
             (2, 5): {},
 
             (1, 5): {'S':
-                     log2(1.0) +  # rule S -> NP VP
-                     log2(0.6 * 1.0 * 0.9) +  # left part
-                     log2(1.0) + log2(1.0) + log2(0.4 * 0.1 * 1.0)},  # right part
+                     # rule S -> NP VP
+                     log2(1.0) +
+                     # left part
+                     log2(0.6 * 1.0 * 0.9) +
+                     # right part
+                     log2(1.0) + log2(1.0) + log2(0.4 * 0.1 * 1.0)},
         }
         self.assertEqualPi(parser._pi, pi)
 

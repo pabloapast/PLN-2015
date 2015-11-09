@@ -13,16 +13,13 @@ class UPCFG:
         """
         parsed_sents -- list of training trees.
         """
-        # self.countFlat = 0
         # List of productions in Chomsky Normal Form
         cnf_prods = []
-        # print('CAMBIEE')
         # Convert each tree to CNF and collapse unary
         for sent in parsed_sents:
             cnf_tree = sent.copy(deep=True)
             cnf_tree = unlexicalize(cnf_tree)
-            # cnf_tree.collapse_unary(collapsePOS=True)
-            cnf_tree.chomsky_normal_form()#horzMarkov=horzMarkov)
+            cnf_tree.chomsky_normal_form(horzMarkov=horzMarkov)
             cnf_tree.collapse_unary(collapsePOS=True)
             cnf_prods += cnf_tree.productions()
 
@@ -45,8 +42,6 @@ class UPCFG:
         _parser = self._parser
         _start = self._start
 
-        # self._tagged_sent = tagged_sent
-
         sent, tags = zip(*tagged_sent)
         log_p, tree = _parser.parse(tags)
 
@@ -55,7 +50,6 @@ class UPCFG:
             for word, tag in tagged_sent:
                 subtrees.append(Tree(tag, [word]))
             tree = Tree(_start, subtrees)
-            # self.countFlat += 1
         else:
             tree.un_chomsky_normal_form()
             tree = lexicalize(tree, sent)

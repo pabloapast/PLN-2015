@@ -51,16 +51,16 @@ if __name__ == '__main__':
 
     print('Parsing...')
     hits, total_gold, total_model, u_hits = 0, 0, 0, 0
-    n = len(parsed_sents)
+    parse_n = len(parsed_sents)
 
     max_parsed_sents = opts['-n']
     if max_parsed_sents is None:
-        max_parsed_sents = n
+        max_parsed_sents = parse_n
     else:
         max_parsed_sents = eval(max_parsed_sents)
 
     format_str = '{:3.1f}% ({}/{}) (P={:2.2f}%, R={:2.2f}%, F1={:2.2f}%)'
-    progress(format_str.format(0.0, 0, n, 0.0, 0.0, 0.0))
+    progress(format_str.format(0.0, 0, parse_n, 0.0, 0.0, 0.0))
     for i, gold_parsed_sent in enumerate(parsed_sents):
         if i <= max_parsed_sents:
             tagged_sent = gold_parsed_sent.pos()
@@ -90,13 +90,13 @@ if __name__ == '__main__':
             u_rec = float(u_hits) / total_gold * 100
             u_f1 = 2 * u_prec * u_rec / (u_prec + u_rec)
 
-            progress(format_str.format(float(i+1) * 100 / n, i+1, n, prec, rec,
-                     f1))
+            progress(format_str.format(float(i+1) * 100 / parse_n, i+1,
+                                       parse_n, prec, rec, f1))
         else:
             break
 
     print('')
-    print('Parsed {} sentences'.format(n))
+    print('Parsed {} sentences'.format(parse_n))
     print('Labeled')
     print('  Precision: {:2.2f}% '.format(prec))
     print('  Recall: {:2.2f}% '.format(rec))
