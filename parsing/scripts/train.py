@@ -1,7 +1,7 @@
 """Train a parser.
 
 Usage:
-  train.py [-m <model>] -o <file>
+  train.py [-m <model>] [-n <n>] -o <file>
   train.py -h | --help
 
 Options:
@@ -10,6 +10,7 @@ Options:
                   rbranch: Right branching trees
                   lbranch: Left branching trees
                   upcfg: Unlexicalized PCFG
+  -n <n>        Horizontal Markovization order [default: None]
   -o <file>     Output model file.
   -h --help     Show this screen.
 """
@@ -38,7 +39,12 @@ if __name__ == '__main__':
     corpus = SimpleAncoraCorpusReader('ancora/ancora-2.0/', files)
 
     print('Training model...')
-    model = models[opts['-m']](corpus.parsed_sents())
+    model = None
+    n = eval(opts['-n'])
+    if n is not None:
+        model = models[opts['-m']](corpus.parsed_sents(), n)
+    else:
+        model = models[opts['-m']](corpus.parsed_sents())
 
     print('Saving...')
     filename = opts['-o']

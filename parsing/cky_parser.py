@@ -2,7 +2,7 @@ from nltk.tree import Tree
 import time
 
 
-class CKYParser:
+class CKYParser:  # Posible ERROR, estar metiendo noterminales unarios dentro de uni_prods
 
     def __init__(self, grammar):
         """
@@ -10,13 +10,12 @@ class CKYParser:
         """
         assert grammar.is_binarised()
 
-        self._grammar = _grammar = grammar
-        self._start = _grammar.start().symbol()
+        self._start = grammar.start().symbol()
         # List of unary productions
-        self._uni_prods = _uni_prods = [p for p in _grammar.productions()
+        _uni_prods = [p for p in grammar.productions()
                                         if len(p.rhs()) == 1]
         # List of binary productions
-        self._bi_prods = _bi_prods = [p for p in _grammar.productions()
+        _bi_prods = [p for p in grammar.productions()
                                       if len(p.rhs()) == 2]
 
         self._prods_dict = _prods_dict = {}
@@ -38,9 +37,8 @@ class CKYParser:
 
         sent -- the sequence of terminals.
         """
-        _grammar = self._grammar
-        _uni_prods = self._uni_prods
-        _bi_prods = self._bi_prods
+        # _uni_prods = self._uni_prods
+        # _bi_prods = self._bi_prods
         _prods_dict = self._prods_dict
         _start = self._start
 
@@ -73,6 +71,5 @@ class CKYParser:
                                     _pi[i, j][X] = new_prob
                                     _bp[i, j][X] = Tree(X, [_bp[i, s][A], _bp[s+1, j][B]])
         # print('start2 = {}'.format(start2 - time.time()))
-
 
         return _pi[1, n].get(_start, float('-inf')), _bp[1, n].get(_start)

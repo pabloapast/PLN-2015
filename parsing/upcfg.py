@@ -16,29 +16,34 @@ class UPCFG:
         # self.countFlat = 0
         # List of productions in Chomsky Normal Form
         cnf_prods = []
+        # print('CAMBIEE')
         # Convert each tree to CNF and collapse unary
         for sent in parsed_sents:
             cnf_tree = sent.copy(deep=True)
             cnf_tree = unlexicalize(cnf_tree)
+            # cnf_tree.collapse_unary(collapsePOS=True)
+            cnf_tree.chomsky_normal_form()#horzMarkov=horzMarkov)
             cnf_tree.collapse_unary(collapsePOS=True)
-            cnf_tree.chomsky_normal_form()
             cnf_prods += cnf_tree.productions()
-        # cnf_prods = set(cnf_prods)
-        self._grammar = induce_pcfg(Nonterminal(start), cnf_prods)  # UPCFG grammar
-        self._parser = CKYParser(self._grammar)  # CKY parser
+
+        _grammar = induce_pcfg(Nonterminal(start), cnf_prods)  # UPCFG grammar
+        self._start = _grammar.start().symbol()
+        self._productions = _grammar.productions()
+
+        self._parser = CKYParser(_grammar)  # CKY parser
 
     def productions(self):
         """Returns the list of UPCFG probabilistic productions.
         """
-        return self._grammar.productions()
+        return self._productions
 
     def parse(self, tagged_sent):
         """Parse a tagged sentence.
 
         tagged_sent -- the tagged sentence (a list of pairs (word, tag)).
         """
-        _grammar = self._grammar
         _parser = self._parser
+        _start = self._start
 
         # self._tagged_sent = tagged_sent
 
@@ -49,7 +54,7 @@ class UPCFG:
             subtrees = []
             for word, tag in tagged_sent:
                 subtrees.append(Tree(tag, [word]))
-            tree = Tree(_grammar.start().symbol(), subtrees)
+            tree = Tree(_start, subtrees)
             # self.countFlat += 1
         else:
             tree.un_chomsky_normal_form()
