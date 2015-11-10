@@ -132,15 +132,15 @@ Producciones probabilisticas asociadas en CNF::
 
 Arbol que se espera obtener (el de mayor probabilidad)::
 
-          NP
-  ________|___
- |            Ñ
- |    ________|___
- |   |            Ñ
- |   |         ___|_____
- D   JJ       NN        NN
- |   |        |         |
-the fast     car     mechanic
+              NP
+      ________|___
+     |            Ñ
+     |    ________|___
+     |   |            Ñ
+     |   |         ___|_____
+     D   JJ       NN        NN
+     |   |        |         |
+    the fast     car     mechanic
 
 
 Ejercicio 3: PCFGs No Lexicalizadas
