@@ -9,26 +9,39 @@ Ejercicio 1: Evaluación de Parsers
 1. Entrenar modelos baseline:
 
     - Flat::
+
         $ python parsing/scripts/train.py -m flat -o parsing/models/flat
+
     - RBranch::
+
         $ python parsing/scripts/train.py -m rbranch -o parsing/models/rbranch
+
     - LBranch::
+
         $ python parsing/scripts/train.py -m lbranch -o parsing/models/lbranch
 
 2. Evaluar modelos entrenados (para oraciones de largo <= 20):
 
     - Flat::
+
         $ time python parsing/scripts/eval.py -i parsing/models/flat -m 20
+
     - RBranch::
+
         $ time python parsing/scripts/eval.py -i parsing/models/rbranch -m 20
+
     - LBranch::
+
         $ time python parsing/scripts/eval.py -i parsing/models/lbranch -m 20
+
     - Para evaluar, por ejemplo, solo 100 oraciones::
+
         $ time python parsing/scripts/eval.py -i parsing/models/lbranch -m 20 -n 100
 
 3. Resultados de la evaluacion:
 
     - Flat::
+
         100.0% (1444/1444) (P=99.93%, R=14.57%, F1=25.43%)
         Parsed 1444 sentences
         Labeled
@@ -45,6 +58,7 @@ Ejercicio 1: Evaluación de Parsers
         sys 0m0.159s
 
     - RBranch::
+
         100.0% (1444/1444) (P=8.81%, R=14.57%, F1=10.98%)
         Parsed 1444 sentences
         Labeled
@@ -61,6 +75,7 @@ Ejercicio 1: Evaluación de Parsers
         sys 0m0.158s
 
     - LBranch::
+
         100.0% (1444/1444) (P=8.81%, R=14.57%, F1=10.98%)
         Parsed 1444 sentences
         Labeled
@@ -106,14 +121,14 @@ Producciones probabilisticas asociadas en CNF::
 +===================================+===================================+===================================+===================================+
 | the                               | fast                              | car                               | mechanic                          |
 +-----------------------------------+-----------------------------------+-----------------------------------+-----------------------------------+
-| D  1.0                            |                 -                 | NP  1.0*0.048*0.6 = 0.0288        | NP  0.6*1.0*0.2*0.0408 = 0.004896 |
+| D  1.0                            |                                   | NP  1.0*0.048*0.6 = 0.0288        | NP  0.6*1.0*0.2*0.0408 = 0.004896 |
 +-----------------------------------+-----------------------------------+-----------------------------------+-----------------------------------+
-                                    | JJ  1.0                           | Ñ  0.6*1.0*0.08 = 0.048           | Ñ  1.0*0.0408*0.2 = 0.00816       |
-                                    +-----------------------------------+-----------------------------------+-----------------------------------+
-                                                                        | NN  0.6                           | Ñ  0.4*0.6*0.17 = 0.0408          |
-                                                                        +-----------------------------------+-----------------------------------+
-                                                                                                            | NN  0.4                           |
-                                                                                                            +-----------------------------------+
+|                -                  | JJ  1.0                           | Ñ  0.6*1.0*0.08 = 0.048           | Ñ  1.0*0.0408*0.2 = 0.00816       |
++-----------------------------------+-----------------------------------+-----------------------------------+-----------------------------------+
+|                -                  |                -                  | NN  0.6                           | Ñ  0.4*0.6*0.17 = 0.0408          |
++-----------------------------------+-----------------------------------+-----------------------------------+-----------------------------------+
+|                -                  |                -                  |                -                  | NN  0.4                           |
++-----------------------------------+-----------------------------------+-----------------------------------+-----------------------------------+
 
 Arbol que se espera obtener (el de mayor probabilidad)::
 
