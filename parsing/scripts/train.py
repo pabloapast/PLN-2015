@@ -42,7 +42,7 @@ if __name__ == '__main__':
     model = None
     n = eval(opts['-n'])
     if n is not None:
-        model = models[opts['-m']](corpus.parsed_sents(), n)
+        model = models[opts['-m']](corpus.parsed_sents(), horzMarkov=n)
     else:
         model = models[opts['-m']](corpus.parsed_sents())
 
