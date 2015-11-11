@@ -38,7 +38,7 @@ Ejercicio 1: Evaluación de Parsers
 
         $ time python parsing/scripts/eval.py -i parsing/models/lbranch -m 20 -n 100
 
-3. Resultados de la evaluacion:
+3. Resultados de la evaluación:
 
     - Flat::
 
@@ -95,7 +95,7 @@ Ejercicio 1: Evaluación de Parsers
 Ejercicio 2: Algoritmo CKY
 --------------------------
 
-Para el test de gramatica con una oracion ambigua use la siguiente oracion: "the fast car mechanic"
+Para el test de gramática con una oración ambigua use la siguiente oración: "the fast car mechanic"
 
 Producciones probabilisticas asociadas en CNF::
 
@@ -117,7 +117,7 @@ Producciones probabilisticas asociadas en CNF::
     NN -> 'mechanic'    [0.4]
 
 +-----------------------------------------------------------------------------------------------------------------------------------------------+
-| Tabla pi que deberia generar mi CKY:                                                                                                          |
+| Tabla pi que debería generar mi CKY:                                                                                                          |
 +===================================+===================================+===================================+===================================+
 | the                               | fast                              | car                               | mechanic                          |
 +-----------------------------------+-----------------------------------+-----------------------------------+-----------------------------------+
@@ -130,7 +130,7 @@ Producciones probabilisticas asociadas en CNF::
 |                 -                 |                 -                 |                 -                 | NN  0.4                           |
 +-----------------------------------+-----------------------------------+-----------------------------------+-----------------------------------+
 
-Arbol que se espera obtener (el de mayor probabilidad)::
+Árbol que se espera obtener (el de mayor probabilidad)::
 
               NP
       ________|___
@@ -155,7 +155,7 @@ Ejercicio 3: PCFGs No Lexicalizadas
 
     $ time python parsing/scripts/eval.py -i parsing/models/upcfg -m 20
 
-3. Resultados de la evaluacion::
+3. Resultados de la evaluación::
 
     100.0% (1444/1444) (P=73.14%, R=72.84%, F1=72.99%)
     Parsed 1444 sentences
@@ -178,7 +178,7 @@ Ejercicio 4: Markovización Horizontal
 
 1. Entrenar UPCFG:
 
-    - Markovización Horizontal de orden 0 (Analogo para markovización de otro orden cambiando el 0 por el numero deseado)::
+    - Markovización Horizontal de orden 0 (Análogo para markovización de otro orden cambiando el 0 por el numero deseado)::
 
         $ python parsing/scripts/train.py -m upcfg -n 0 -o parsing/models/upcfg-horzMarkov0
 
@@ -186,7 +186,7 @@ Ejercicio 4: Markovización Horizontal
 
     $ time python parsing/scripts/eval.py -i parsing/models/upcfg-horzMarkov0 -m 20
 
-3. Resultados de la evaluacion:
+3. Resultados de la evaluación:
 
     - Orden 0::
 
