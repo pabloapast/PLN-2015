@@ -43,6 +43,7 @@ if __name__ == '__main__':
     confusion_matrix = defaultdict(lambda: defaultdict(int))
     words_by_tags = defaultdict(lambda: defaultdict(int))
     n = len(sents)
+    err_count = 0
     for i, sent in enumerate(sents):
         word_sent, gold_tag_sent = zip(*sent)
 
@@ -58,7 +59,9 @@ if __name__ == '__main__':
         # Make confusion matrix
         if opts['-c']:
             for m, g in zip(model_tag_sent, gold_tag_sent):
-                confusion_matrix[g][m] += m != g
+                if m != g:
+                    err_count += 1
+                    confusion_matrix[g][m] += 1
             # For each tag, make a dict with their words and occurrence
             for word, tag in sent:
                 words_by_tags[tag][word] += 1
@@ -91,13 +94,12 @@ if __name__ == '__main__':
                             key=lambda k: sum(words_by_tags[k].values()),
                             reverse=True)[:10]
 
-        print(('     ' + '{}     '*len(top10_tags)).format(*top10_tags))
+        print('\t', end='')
+        print('\t'.join(top10_tags))
         for gold_tag in top10_tags:
-            print(gold_tag + '  ', end='')
-            for model_tag in top10_tags:
-                if gold_tag == model_tag:
-                    print('  {}    '.format('-'), end='')
-                else:
-                    print('{:2.2f}%  '.format(confusion_matrix.get(gold_tag).
-                          get(model_tag, 0) / total), end='')
+            print(gold_tag + '\t', end='')
+            p = ["{:.2f}%".format(100 *
+                                  confusion_matrix[gold_tag][model_tag] /
+                                  err_count) for model_tag in top10_tags]
+            print('\t'.join(p))
             print('')
