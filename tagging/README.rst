@@ -47,6 +47,19 @@ corpus que usamos (Ancora)
      9 tag      0 - 0.00% = []
 
 
+Descripcion de etiquetas frecuentes:
+    * nc: Nombre comun
+    * sp: Preposicion
+    * da: Determinante articulo
+    * vm: Verbo principal
+    * aq: Adjetivo descriptivo
+    * fc: Signo de puntuacion, coma (',') en este caso
+    * np: Nombre propio
+    * fp: Signo de puntacion, punto ('.') o parentesis ('(', ')')
+    * rg: Adverbio general
+    * cc: Conjunción, coordinador
+
+
 Ejercicio 2: Baseline Tagger
 ----------------------------
 
