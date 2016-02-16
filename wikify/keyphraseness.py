@@ -1,4 +1,5 @@
 from collections import Counter
+from multiprocessing import Pool
 import re
 import time
 from heapq import nlargest
@@ -6,6 +7,7 @@ from heapq import nlargest
 from lxml import etree
 from nltk.tokenize import word_tokenize
 import numpy as np
+from sklearn.feature_extraction.text import CountVectorizer
 
 from wikify.const import PAGE_TAG, TEXT_TAG, NAMESPACE_TAG, ARTICLE_ID
 from wikify.utils import fast_xml_iter, clean_text
@@ -14,6 +16,7 @@ from wikify.utils import fast_xml_iter, clean_text
 class Keyphraseness:
 
     def __init__(self, wiki_dump):
+        self._pool = Pool(processes=3)
         # Ignore keywords starting with this names
         self._ignored_keywords = ['image:', 'file:', 'category:', 'wikipedia:']
         # Regular expression used to extract keywords inside '[[ ]]'
@@ -21,7 +24,7 @@ class Keyphraseness:
 
         # Iterates over xml and extract keywords
         start_time = time.time()
-        xml_iterator = etree.iterparse(wiki_dump, tag=NAMESPACE_TAG)
+        xml_iterator = etree.iterparse(wiki_dump, tag=PAGE_TAG)
         # Vocabulary of keywords with their occurrence count
         _vocabulary = Counter()
         fast_xml_iter(xml_iterator, self.extract_keywords, _vocabulary)
@@ -38,7 +41,7 @@ class Keyphraseness:
                                            vocabulary=_vocabulary.keys(),
                                            tokenizer=word_tokenize)
         fast_xml_iter(xml_iterator, self.count_keywords, _token_counts)
-        self._index_to_feature = vectorizer.get_feature_names()
+        self._index_to_feature = self._vectorizer.get_feature_names()
         print("--- %s sec: count_keywords ---" % (time.time() - start_time))
 
         start_time = time.time()
@@ -60,9 +63,10 @@ class Keyphraseness:
             text = next(iterator).text
             # Find words inside '[[ ]]'
             words = self._extract_regex.findall(text)
+            words = self._pool.map(clean_text, words)
 
             for word in words:
-                word = clean_text(word.split('|')[-1])
+                # word = clean_text(word.split('|')[-1])
                 if not any(x in word for x in self._ignored_keywords) and\
                    len(word) > 0:
                     keywords.append(word)
@@ -75,12 +79,11 @@ class Keyphraseness:
         namespace_id = next(iterator).text
 
         if namespace_id == ARTICLE_ID:
-
-        # Text in the article
-        iterator = elem.iterdescendants(tag=TEXT_TAG)
-        text = next(iterator).text
-        m = self._vectorizer.transform(text)
-        dest = np.add(dest, m)
+            # Text in the article
+            iterator = elem.iterdescendants(tag=TEXT_TAG)
+            text = next(iterator).text
+            m = self._vectorizer.transform(text)
+            dest = np.add(dest, m)
 
 
     def rank(self, text, ratio):
@@ -90,3 +93,5 @@ class Keyphraseness:
         zipped = list(zip(cols, self._keyphraseness[0, cols]))
         top = nlargest(ratio, zipped, key=lambda t: t[1])
         return [self._index_to_feature[i] for i in top]
+
+# 1148.8907270431519 sec: extract_keywords 3 cores

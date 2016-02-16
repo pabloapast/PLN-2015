@@ -19,8 +19,8 @@ def fast_xml_iter(context, func, dest):
             del elem.getparent()[0]
 
 
-# Tokenize text
-def clean_text(text):
-    text = text.lower()
-    tokens = word_tokenize(text)
+# Tokenize keywords
+def clean_text(keyword):
+    keyword = keyword.split('|')[-1].lower()
+    tokens = word_tokenize(keyword)
     return ' '.join([token for token in tokens if not token in punctuation])
