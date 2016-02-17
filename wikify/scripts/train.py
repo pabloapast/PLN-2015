@@ -7,7 +7,7 @@ from wikify.keyphraseness import Keyphraseness
 if __name__ == '__main__':
 
     # load the data
-    file = './wiki-dump/mini/enwiki-test1gb'
+    file = './wiki-dump/mini/enwiki1k'
 
     # train the model
     model = Keyphraseness(file)

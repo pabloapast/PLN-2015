@@ -34,7 +34,7 @@ class Keyphraseness:
 
         start_time = time.time()
         self._vectorizer = CountVectorizer(ngram_range=(1, 3),
-                                           analyzer=self.custom_analyzer,
+                                           analyzer=lambda doc: self._vectorizer._word_ngrams(list(filter(lambda word: word not in PUNCTUATION, word_tokenize(' '.join(doc.lower().split('|'))))), None),
                                            vocabulary=list(_vocabulary.keys()))
         _keywords_counts = self.count_keywords(xml)
         # print(_keywords_counts)
@@ -54,14 +54,12 @@ class Keyphraseness:
                                             _keywords_counts[0, index]
 
 
-    def custom_analyzer(self, doc):
-        preprocess = lambda doc: ' '.join(doc.lower().split('|'))
-        tokenize = word_tokenize
-
-        return lambda doc: self._word_ngrams(
-                filter(lambda word: word not in PUNCTUATION,
-                        tokenize(preprocess(self.decode(doc)))),
-                stop_words)
+    def custom_analyzer(self):
+        # preprocess = lambda doc: ' '.join(doc.lower().split('|'))
+        # tokenize = word_tokenize
+        return lambda x: x.split()
+        return lambda doc: self._vectorizer._word_ngrams(filter(lambda word: word not in PUNCTUATION, word_tokenize(' '.join(doc.lower().split('|')))), None)
+                # None)
 
 
     def extract_keywords(self, xml, processes=4):
