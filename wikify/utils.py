@@ -1,14 +1,14 @@
-from string import punctuation
-
 from lxml import etree
 from nltk.tokenize import word_tokenize
 
-
-punctuation += "\'\'\"\""
+from wikify.const import IGNORED_KEYWORDS, PUNCTUATION, PAGE_TAG,\
+                         NAMESPACE_TAG, TEXT_TAG, ARTICLE_ID
 
 
 # Iteration over xml with low ram consumption
-def fast_xml_iter(context, func, dest):
+def fast_xml_iter(xml, func, dest, tag=None):
+    context = etree.iterparse(xml, tag=tag)
+
     for event, elem in context:
         # Execute operations over xml node
         func(elem, dest)
@@ -19,8 +19,12 @@ def fast_xml_iter(context, func, dest):
             del elem.getparent()[0]
 
 
-# Tokenize keywords
-def clean_text(keyword):
+def clean_keywords(keyword):
+    cleaned_keyword = ''
     keyword = keyword.split('|')[-1].lower()
-    tokens = word_tokenize(keyword)
-    return ' '.join([token for token in tokens if not token in punctuation])
+    if not keyword.startswith(IGNORED_KEYWORDS):
+        tokens = word_tokenize(keyword)
+        cleaned_keyword = ' '.join([token for token in tokens
+                                    if not token in PUNCTUATION])
+
+    return cleaned_keyword

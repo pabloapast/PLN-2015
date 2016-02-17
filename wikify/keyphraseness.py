@@ -1,89 +1,131 @@
 from collections import Counter
+from heapq import nlargest
 from multiprocessing import Pool
 import re
 import time
-from heapq import nlargest
 
 from lxml import etree
 from nltk.tokenize import word_tokenize
 import numpy as np
 from sklearn.feature_extraction.text import CountVectorizer
 
-from wikify.const import PAGE_TAG, TEXT_TAG, NAMESPACE_TAG, ARTICLE_ID
-from wikify.utils import fast_xml_iter, clean_text
+from wikify.const import PAGE_TAG, TEXT_TAG, NAMESPACE_TAG, ARTICLE_ID,\
+                         PUNCTUATION
+from wikify.utils import fast_xml_iter, clean_keywords
 
 
 class Keyphraseness:
 
-    def __init__(self, wiki_dump):
-        self._pool = Pool(processes=3)
-        # Ignore keywords starting with this names
-        self._ignored_keywords = ['image:', 'file:', 'category:', 'wikipedia:']
-        # Regular expression used to extract keywords inside '[[ ]]'
-        self._extract_regex = re.compile('\[\[([^][]+)\]\]', re.IGNORECASE)
-
+    def __init__(self, xml, processes=4):
         # Iterates over xml and extract keywords
         start_time = time.time()
-        xml_iterator = etree.iterparse(wiki_dump, tag=PAGE_TAG)
         # Vocabulary of keywords with their occurrence count
-        _vocabulary = Counter()
-        fast_xml_iter(xml_iterator, self.extract_keywords, _vocabulary)
+        _vocabulary = self.extract_keywords(xml, processes)
 
         # Delete keywords that occurs less than 5 times
         for key, value in list(_vocabulary.items()):
-            if value <= 5:
+            if value <= 5 or len(key.split()) > 3 or len(key) < 2:
                 del _vocabulary[key]
         print("--- %s sec: extract_keywords ---" % (time.time() - start_time))
+        self._vocabulary_len = len(_vocabulary)
+        print('vocabulary len = ', self._vocabulary_len)
+        # print(_vocabulary.keys())
+
 
         start_time = time.time()
-        _token_counts = np.zeros((1, len(_vocabulary.keys())))
-        self._vectorizer = CountVectorizer(lowercase=True, ngram_range=(1, 3),
-                                           vocabulary=_vocabulary.keys(),
-                                           tokenizer=word_tokenize)
-        fast_xml_iter(xml_iterator, self.count_keywords, _token_counts)
+        self._vectorizer = CountVectorizer(ngram_range=(1, 3),
+                                           analyzer=self.custom_analyzer,
+                                           vocabulary=list(_vocabulary.keys()))
+        _keywords_counts = self.count_keywords(xml)
+        # print(_keywords_counts)
         self._index_to_feature = self._vectorizer.get_feature_names()
+        l = [(name, _keywords_counts[0, i])
+             for i, name in enumerate(self._index_to_feature)
+             if _keywords_counts[0, i] == 0]
+        print(l)
         print("--- %s sec: count_keywords ---" % (time.time() - start_time))
 
-        start_time = time.time()
-        self._keyphraseness = np.zeros((1, len(vocabulary.keys())))
+        # print(np.sum(_keywords_counts))
+        # print(_keywords_counts[])
+        # print(self._index_to_feature[24])
+        self._keyphraseness = np.zeros((1, self._vocabulary_len))
         for index, keyword in enumerate(self._index_to_feature):
             self._keyphraseness[0, index] = _vocabulary[keyword] /\
-                                            _token_counts[0, index]
-        print("--- %s sec: keyphraseness ---" % (time.time() - start_time))
+                                            _keywords_counts[0, index]
 
 
-    def extract_keywords(self, elem, dest):
-        iterator = elem.iterchildren(tag=NAMESPACE_TAG)
-        namespace_id = next(iterator).text
+    def custom_analyzer(self, doc):
+        preprocess = lambda doc: ' '.join(doc.lower().split('|'))
+        tokenize = word_tokenize
 
-        if namespace_id == ARTICLE_ID:
-            keywords = []
-            # Text in the article
-            iterator = elem.iterdescendants(tag=TEXT_TAG)
-            text = next(iterator).text
-            # Find words inside '[[ ]]'
-            words = self._extract_regex.findall(text)
-            words = self._pool.map(clean_text, words)
-
-            for word in words:
-                # word = clean_text(word.split('|')[-1])
-                if not any(x in word for x in self._ignored_keywords) and\
-                   len(word) > 0:
-                    keywords.append(word)
-
-            dest.update(keywords)
+        return lambda doc: self._word_ngrams(
+                filter(lambda word: word not in PUNCTUATION,
+                        tokenize(preprocess(self.decode(doc)))),
+                stop_words)
 
 
-    def count_keywords(self, elem, dest):
-        iterator = elem.iterchildren(tag=NAMESPACE_TAG)
-        namespace_id = next(iterator).text
+    def extract_keywords(self, xml, processes=4):
+        pool = Pool(processes=processes)
+        # Regular expression used to extract keywords inside '[[ ]]'
+        extract_regex = re.compile('\[\[([^][]+)\]\]', re.IGNORECASE)
 
-        if namespace_id == ARTICLE_ID:
-            # Text in the article
-            iterator = elem.iterdescendants(tag=TEXT_TAG)
-            text = next(iterator).text
-            m = self._vectorizer.transform(text)
-            dest = np.add(dest, m)
+        vocabulary = Counter()
+        context = etree.iterparse(xml, tag=PAGE_TAG)
+        for event, elem in context:
+            iterator = elem.iterchildren(tag=NAMESPACE_TAG)
+            namespace_id = next(iterator).text
+
+            if namespace_id == ARTICLE_ID:
+                # Text in the article
+                iterator = elem.iterdescendants(tag=TEXT_TAG)
+                text = next(iterator).text
+
+                # Find words inside '[[ ]]'
+                keywords = extract_regex.findall(text)
+                cleaned_keywords = pool.map(clean_keywords, keywords)
+
+                # Update dictionary only with nonempty keywords
+                vocabulary.update(filter(None, cleaned_keywords))
+
+            # Clear data read
+            elem.clear()
+            while elem.getprevious() is not None:
+                del elem.getparent()[0]
+        del context
+
+        return vocabulary
+
+
+    def count_keywords(self, xml):
+        keywords_counts = np.zeros((1, self._vocabulary_len), dtype=np.int)
+        # count = 0
+        context = etree.iterparse(xml, tag=PAGE_TAG)
+        for event, elem in context:
+            iterator = elem.iterchildren(tag=NAMESPACE_TAG)
+            namespace_id = next(iterator).text
+
+            if namespace_id == ARTICLE_ID:
+                # Text in the article
+                iterator = elem.iterdescendants(tag=TEXT_TAG)
+                text = next(iterator).text
+                m = self._vectorizer.transform([text])
+                # if 'Ottoman' in text:
+                #     print(m[0, 298])
+                #     print(text)
+                #     break
+                # count += 1
+                # if count == 2:
+                #     print(text)
+                #     break
+                keywords_counts += m
+
+            # Clear data read
+            elem.clear()
+            while elem.getprevious() is not None:
+                del elem.getparent()[0]
+        del context
+
+        return keywords_counts
 
 
     def rank(self, text, ratio):
