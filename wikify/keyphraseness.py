@@ -128,7 +128,7 @@ class Keyphraseness:
         return keywords_counts
 
 
-    def rank(self, text, ratio):
+    def rank(self, text, ratio=None):
         # ratio = int(len(text.split(' ')) * 0.06)
         m = self._vectorizer.transform(text)
         rows, cols = m.nonzero()
