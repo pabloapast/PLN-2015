@@ -1,8 +1,8 @@
 from lxml import etree
-from nltk.tokenize import word_tokenize
+# from nltk.tokenize import
 
 from wikify.const import IGNORED_KEYWORDS, PUNCTUATION, PAGE_TAG,\
-                         NAMESPACE_TAG, TEXT_TAG, ARTICLE_ID
+                         NAMESPACE_TAG, TEXT_TAG, ARTICLE_ID, CLEAN_REGEX
 
 
 # Iteration over xml with low ram consumption
@@ -23,8 +23,8 @@ def clean_keywords(keyword):
     cleaned_keyword = ''
     keyword = keyword.split('|')[-1].lower()
     if not keyword.startswith(IGNORED_KEYWORDS):
-        tokens = word_tokenize(keyword)
-        cleaned_keyword = ' '.join([token for token in tokens
-                                    if not token in PUNCTUATION])
+        cleaned_keyword = ' '.join(CLEAN_REGEX.tokenize(keyword))
+        if len(cleaned_keyword.split()) > 3:
+            cleaned_keyword = ''
 
     return cleaned_keyword
