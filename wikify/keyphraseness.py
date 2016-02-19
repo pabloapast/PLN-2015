@@ -1,5 +1,6 @@
 from collections import Counter
 from heapq import nlargest
+from math import ceil
 from multiprocessing import Pool
 import re
 import time
@@ -15,7 +16,7 @@ from wikify.utils import fast_xml_iter, clean_keywords
 
 class Keyphraseness:
 
-    def __init__(self, xml, processes=4):
+    def __init__(self, xml, processes=4, ratio=None):
         # Iterates over xml and extract keywords
         start_time = time.time()
         # Vocabulary of keywords with their occurrence count
@@ -99,7 +100,7 @@ class Keyphraseness:
                 text = next(iterator).text
                 articles.append([text])
 
-                if len(articles) == 5000:
+                if len(articles) == 500:
                     m = pool.map(self._vectorizer.transform, articles)
                     for count in m:
                         keywords_counts += count
@@ -119,11 +120,12 @@ class Keyphraseness:
 
 
     def rank(self, text, ratio=None):
-        # ratio = int(len(text.split(' ')) * 0.06)
+        if ratio is None:
+            ratio = ceil(0.06 * len(text.split()))
+
         m = self._vectorizer.transform([text])
         rows, cols = m.nonzero()
         zipped = list(zip(cols, self._keyphraseness[0, cols]))
         top = nlargest(ratio, zipped, key=lambda t: t[1])
-        return [self._index_to_feature[index] for index, prob in top]
 
-# 1148.8907270431519 sec: extract_keywords 3 cores
+        return [self._index_to_feature[index] for index, prob in top]
