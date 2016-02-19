@@ -2,4 +2,8 @@ flake8
 nose
 docopt
 nltk
+lxml
+numpy
+scipy
+scikit-learn
 -e .  # install our code in editing mode
