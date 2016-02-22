@@ -29,7 +29,7 @@ if __name__ == '__main__':
     # Train the model
     if opts['-m'] == 'keyphraseness':
         model = Keyphraseness(xml=xml, processes=int(opts['-c']))
-    elif opts['-m'] = 'disambiguation':
+    elif opts['-m'] == 'disambiguation':
         model = Disambiguation(xml=xml)
 
     # Save it
