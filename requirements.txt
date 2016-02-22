@@ -6,4 +6,5 @@ lxml
 numpy
 scipy
 scikit-learn
+featureforge
 -e .  # install our code in editing mode
