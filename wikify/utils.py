@@ -29,3 +29,10 @@ def clean_keywords(keyword):
             cleaned_keyword = ''
 
     return cleaned_keyword
+
+
+def clean_text(text):
+    tokens = CLEAN_REGEX.tokenize(text)
+    cleaned_tokens = [token for token in tokens if token not in STOPWORDS and
+                      not token.isdigit()]
+    return cleaned_tokens
