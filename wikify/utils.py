@@ -2,7 +2,8 @@ from lxml import etree
 # from nltk.tokenize import
 
 from wikify.const import IGNORED_KEYWORDS, PUNCTUATION, PAGE_TAG,\
-                         NAMESPACE_TAG, TEXT_TAG, ARTICLE_ID, CLEAN_REGEX
+                         NAMESPACE_TAG, TEXT_TAG, ARTICLE_ID, CLEAN_REGEX,\
+                         STOPWORDS
 
 
 # Iteration over xml with low ram consumption
@@ -22,7 +23,7 @@ def fast_xml_iter(xml, func, dest, tag=None):
 def clean_keywords(keyword):
     cleaned_keyword = ''
     keyword = keyword.split('|')[-1].lower()
-    if not keyword.startswith(IGNORED_KEYWORDS):
+    if keyword not in STOPWORDS and not keyword.startswith(IGNORED_KEYWORDS):
         cleaned_keyword = ' '.join(CLEAN_REGEX.tokenize(keyword))
         if len(cleaned_keyword.split()) > 3:
             cleaned_keyword = ''
