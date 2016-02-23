@@ -50,7 +50,7 @@ class Disambiguation:
             elem.clear()
             while elem.getprevious() is not None:
                 del elem.getparent()[0]
-        del context
+        del xml_reader
 
         return context_list
 
@@ -116,7 +116,7 @@ class Disambiguation:
             elem.clear()
             while elem.getprevious() is not None:
                 del elem.getparent()[0]
-        del context
+        del xml_reader
 
         return key_id_list
 
