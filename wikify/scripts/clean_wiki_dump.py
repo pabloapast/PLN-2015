@@ -83,40 +83,41 @@ if __name__ == '__main__':
                 if namespace_id == ARTICLE_ID and not is_redirect:
                     # Text in the article
                     text = extract_node_text(elem, TEXT_TAG)
-                    # Find keywords, they are between '[[' ']]'
-                    keywords = set(extract_keywords(text))
-                    # Now clean text
-                    text = clean_text(text)
+                    if text is not None:
+                        # Find keywords, they are between '[[' ']]'
+                        keywords = set(extract_keywords(text))
+                        # Now clean text
+                        text = clean_text(text)
 
-                    # Build xml nodes
-                    # Article node
-                    with xf.element('article', title=article_title):
-                    # article_node = etree.Element('article', title=article_title)
+                        # Build xml nodes
+                        # Article node
+                        with xf.element('article', title=article_title):
+                        # article_node = etree.Element('article', title=article_title)
 
-                        # Text node
-                        with xf.element('text'):
-                        # text_node = etree.Element('text')
-                        # text_node.text = text
-                        # article_node.append(text_node)
-                            xf.write(text)
+                            # Text node
+                            with xf.element('text'):
+                            # text_node = etree.Element('text')
+                            # text_node.text = text
+                            # article_node.append(text_node)
+                                xf.write(text)
 
-                        # Keywords nodes
-                        for keyword in keywords:
-                            key_id = extract_keyword_id(keyword)
-                            key_name = extract_keyword_name(keyword)
+                            # Keywords nodes
+                            for keyword in keywords:
+                                key_id = extract_keyword_id(keyword)
+                                key_name = extract_keyword_name(keyword)
 
-                            # Exclude stopword and some specific wikipedia keywords
-                            if key_name not in STOPWORDS and\
-                                not keyword.startswith(IGNORED_KEYWORDS):
-                                # Clean keyword name
-                                key_name = clean_keyword_name(key_name)
-                                # Build node
-                                keyword_node = etree.Element('keyword', id=key_id,
-                                                             name=key_name)
-                                xf.write(keyword_node)
-                        #         article_node.append(keyword_node)
+                                # Exclude stopword and some specific wikipedia keywords
+                                if key_name not in STOPWORDS and\
+                                    not keyword.startswith(IGNORED_KEYWORDS):
+                                    # Clean keyword name
+                                    key_name = clean_keyword_name(key_name)
+                                    # Build node
+                                    keyword_node = etree.Element('keyword', id=key_id,
+                                                                 name=key_name)
+                                    xf.write(keyword_node)
+                            #         article_node.append(keyword_node)
 
-                        # root_node.append(article_node)
+                            # root_node.append(article_node)
 
                 # Clear xml node
                 elem.clear()
