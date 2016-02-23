@@ -1,4 +1,6 @@
+import re
 from string import punctuation
+
 from nltk.tokenize import RegexpTokenizer
 from nltk.corpus import stopwords
 
@@ -19,3 +21,5 @@ PUNCTUATION = punctuation + "\'\'\"\""
 STOPWORDS = stopwords.words('english')
 
 CLEAN_REGEX = RegexpTokenizer(r'(?u)\b\w\w+\b')
+
+MATCH_KEYWORDS = re.compile('\[\[([^][]+)\]\]', re.IGNORECASE)

@@ -90,7 +90,8 @@ class Disambiguation:
 
                     count_words = Counter(clean_text(text))
                     top_words, counts = zip(*count_words.most_common(6))
-                    top_words = list(top_words).sort()
+                    list(top_words).sort()
+                    assert(len(top_words) == 6), top_words
 
                     context_list.append(Context(key_name, left_words,
                                                 right_words, top_words))
