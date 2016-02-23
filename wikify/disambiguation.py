@@ -124,6 +124,8 @@ class Disambiguation:
     def text_ids(self, text):
         key_id_list = []
         sents = text.split('.')
+        extract_regex = re.compile('\[\[([^][]+)\]\]', re.IGNORECASE)
+        # stemmer = SnowballStemmer("english")
 
         for sent in sents:
             keywords = extract_regex.findall(sent)
