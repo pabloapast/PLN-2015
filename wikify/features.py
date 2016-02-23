@@ -6,23 +6,12 @@ from featureforge.feature import Feature
 # keyword: current keyword
 # left_words
 # right_words
-# top5_words
+# top_words
 Context = namedtuple('Context', 'keyword left_words right_words top_words')
 
 
 def current_keyword(c):
     return c.keyword
-
-# def left_word(c):
-#     return c.left_words
-
-
-# def right_word(c):
-#     return c.right_words
-
-
-# def top5_words(c):
-#     return c.top5_words
 
 
 class NLeftWord(Feature):

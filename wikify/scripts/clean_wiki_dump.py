@@ -22,9 +22,9 @@ MATCH_KEYWORDS = re.compile('\[\[([^][]+)\]\]', re.IGNORECASE)
 CLEAN_TEXT = re.compile('\{\{.*\}\}|\{\{.*\\n|.*\\n\}\}')
 TOKENIZE_TEXT = RegexpTokenizer(r'(?u)\b\w\w+\b')
 IGNORED_KEYWORDS = ('image:', 'file:', 'category:', 'wikipedia:')
-STOPWORDS = stopwords.words('english')
 NONWORDS = ['ref', 'http', 'https', 'lt', 'gt', 'quot', 'wbr', 'shy', 'www',\
             'com', 'url', 'ref', 'st', 'll']
+STOPWORDS = stopwords.words('english') + NONWORDS
 
 
 def extract_node_text(elem, tag):
@@ -43,6 +43,22 @@ def clean_text(text):
     tokens = [token for token in TOKENIZE_TEXT.tokenize(text)
               if token not in NONWORDS]
     return ' '.join(tokens)
+
+
+def clean_surround(text):
+    text = text.lower()  # Convert all words to lowercase
+    text = CLEAN_TEXT.sub('', text)  # Delete text between '{{' '}}'
+    # Only alphanumeric elements and delete stop words
+    tokens = [token for token in TOKENIZE_TEXT.tokenize(text)
+              if not token.isdigit() and token not in STOPWORDS]
+    return ' '.join(tokens)
+
+
+def extract_surround_words(keyword, text):
+    surround_words = text.split(keyword)
+    l_words = clean_surround(surround_words[0][-150:])
+    r_words = clean_surround(surround_words[1][:150])
+    return l_words, r_words
 
 
 def extract_keyword_id(keyword):
@@ -86,8 +102,8 @@ if __name__ == '__main__':
                     if text is not None:
                         # Find keywords, they are between '[[' ']]'
                         keywords = set(extract_keywords(text))
-                        # Now clean text
-                        text = clean_text(text)
+                        # Clean text
+                        cleaned_text = clean_text(text)
 
                         # Build xml nodes
                         # Article node
@@ -99,21 +115,24 @@ if __name__ == '__main__':
                             # text_node = etree.Element('text')
                             # text_node.text = text
                             # article_node.append(text_node)
-                                xf.write(text)
+                                xf.write(cleaned_text)
 
                             # Keywords nodes
                             for keyword in keywords:
-                                key_id = extract_keyword_id(keyword)
-                                key_name = extract_keyword_name(keyword)
 
-                                # Exclude stopword and some specific wikipedia keywords
-                                if key_name not in STOPWORDS and\
-                                    not keyword.startswith(IGNORED_KEYWORDS):
+                                # Exclude some specific wikipedia keywords
+                                if not keyword.startswith(IGNORED_KEYWORDS):
+                                    key_id = extract_keyword_id(keyword)
+                                    key_name = extract_keyword_name(keyword)
                                     # Clean keyword name
                                     key_name = clean_keyword_name(key_name)
+                                    # Left and right words
+                                    l_words, r_words = extract_surround_words(keyword, text)
                                     # Build node
                                     keyword_node = etree.Element('keyword', id=key_id,
-                                                                 name=key_name)
+                                                                 name=key_name,
+                                                                 l_words=l_words,
+                                                                 r_words=r_words)
                                     xf.write(keyword_node)
                             #         article_node.append(keyword_node)
 
