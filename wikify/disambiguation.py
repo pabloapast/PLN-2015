@@ -10,6 +10,7 @@ from wikify.utils import clean_keywords, clean_text
 from lxml import etree
 from nltk.stem.snowball import SnowballStemmer
 from featureforge.vectorizer import Vectorizer
+from sklearn import svm
 from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.svm import LinearSVC
@@ -19,99 +20,83 @@ from sklearn.pipeline import Pipeline
 
 class Disambiguation:
 
-    def __init__(self, xml):
+    def __init__(self, xml, n=3, surround=6, top=10,
+                 classifier='LogisticRegression'):
+        self.n = n
+        self.surround = surround
+        self.top = top
+
+        classifiers = {'LogisticRegression': LogisticRegression(),
+                       'LinearSVC': LinearSVC(),
+                       'MultinomialNB': MultinomialNB(),
+                       'DecisionTreeClassifier': DecisionTreeClassifier(),
+                       }
+
         features = []
         features.append(current_keyword)
-        for i in range(6):
+        for i in range(self.surround):
             features.append(NLeftWord(i))
             features.append(NRightWord(i))
+        for i in range(self.top):
             features.append(NTopWord(i))
-
         self.clf = clf = Pipeline([('vect', Vectorizer(features)),
-                                   ('clf', LinearSVC)])
+                                   ('clf', classifiers[classifier])])
         clf = clf.fit(self.texts_context(xml), self.texts_ids(xml))
 
 
     def texts_context(self, xml):
         context_list = []
-        xml_reader = etree.iterparse(xml, tag=PAGE_TAG)
+        xml_reader = etree.iterparse(xml, tag='article')
 
         for event, elem in xml_reader:
-            iterator = elem.iterchildren(tag=NAMESPACE_TAG)
-            namespace_id = next(iterator).text
+            text_iterator = elem.iterchildren(tag='text')
+            text = next(text_iterator).text
+            # assert text is not None
 
-            if namespace_id == ARTICLE_ID:
-                # Text in the article
-                iterator = elem.iterdescendants(tag=TEXT_TAG)
-                text = next(iterator).text
-                context_list += self.text_context(text)
+            count_words = Counter([word for word in text.split()
+                                   if not word.isdigit() and word not in STOPWORDS])
+            top_words, _ = zip(*count_words.most_common(self.top))
+            top_words = list(top_words)
+
+            keyword_iterator = elem.iterchildren(tag='keyword')
+
+            context_list += self.text_context(keyword_iterator, top_words)
 
             # Clear data read
             elem.clear()
             while elem.getprevious() is not None:
                 del elem.getparent()[0]
+
         del xml_reader
 
         return context_list
 
 
-
-    def text_context(self, text):
+    def text_context(self, keyword_iterator, top_words):
         context_list = []
-        sents = text.split('\n')
-        extract_regex = re.compile('\[\[([^][]+)\]\]', re.IGNORECASE)
-        stemmer = SnowballStemmer("english")
 
-        for sent in sents:
-            keywords = set(extract_regex.findall(sent))
+        for keyword in keyword_iterator:
+            key_name = keyword.attrib['name']
+            l_words = keyword.attrib['l_words'].split()[-self.surround:]
+            l_words = ['']*(self.surround - len(l_words)) + l_words
+            r_words = keyword.attrib['r_words'].split()[:self.surround]
+            r_words = r_words + ['']*(self.surround - len(r_words))
 
-            for key in keywords:
-
-                # assert len(sent.split('[[' + key + ']]')) == 2, (sent, key)
-                surrounding_words = sent.split('[[' + key + ']]')
-                left_words, right_words = surrounding_words[0], surrounding_words[1]
-                key_name = clean_keywords(key)
-
-                if not key_name == '':
-                    left_words = CLEAN_REGEX.tokenize(left_words)
-                    right_words = CLEAN_REGEX.tokenize(right_words)
-
-                    left_words = [stemmer.stem(word) for word in left_words
-                                  if word not in STOPWORDS and
-                                  not word.isdigit()][-6:]
-                    right_words = [stemmer.stem(word) for word in right_words
-                                   if word not in STOPWORDS and
-                                   not word.isdigit()][:6]
-
-                    left_words = ['']*(6 - len(left_words)) + left_words
-                    right_words = right_words + ['']*(6 - len(right_words))
-                    left_words.sort()
-                    right_words.sort()
-
-                    count_words = Counter(clean_text(text))
-                    top_words, counts = zip(*count_words.most_common(6))
-                    list(top_words).sort()
-                    assert(len(top_words) == 6), top_words
-
-                    context_list.append(Context(key_name, left_words,
-                                                right_words, top_words))
+            # print(Context(key_name, l_words, r_words, top_words))
+            context_list.append(Context(key_name, l_words, r_words, top_words))
 
         return context_list
 
 
     def texts_ids(self, xml):
         key_id_list = []
-        xml_reader = etree.iterparse(xml, tag=PAGE_TAG)
+        xml_reader = etree.iterparse(xml, tag='article')
 
         for event, elem in xml_reader:
-            iterator = elem.iterchildren(tag=NAMESPACE_TAG)
-            namespace_id = next(iterator).text
 
-            if namespace_id == ARTICLE_ID:
-                # Text in the article
-                iterator = elem.iterdescendants(tag=TEXT_TAG)
-                text = next(iterator).text
-                key_id_list += self.text_ids(text)
+            keyword_iterator = elem.iterchildren(tag='keyword')
+
+            key_id_list += self.text_ids(keyword_iterator)
 
             # Clear data read
             elem.clear()
@@ -122,22 +107,12 @@ class Disambiguation:
         return key_id_list
 
 
-    def text_ids(self, text):
+    def text_ids(self, keyword_iterator):
         key_id_list = []
-        sents = text.split('.')
-        extract_regex = re.compile('\[\[([^][]+)\]\]', re.IGNORECASE)
-        # stemmer = SnowballStemmer("english")
 
-        for sent in sents:
-            keywords = extract_regex.findall(sent)
-
-            for key in keywords:
-                left_words, right_words = sent.split('[[' + key + ']]')
-                key_name = clean_keywords(key)
-
-                if not key_name == '':
-                    key_id = key.split('|')[0]
-                    key_id_list.append(key_id)
+        for keyword in keyword_iterator:
+            key_id = keyword.attrib['id']
+            key_id_list.append(key_id)
 
         return key_id_list
 

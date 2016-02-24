@@ -1,11 +1,11 @@
 """Eval perfomance of Keyphraseness method
 Usage:
-  eval_keyphraseness.py -i <file> -d <file> [-c <c>]
+  eval_keyphraseness.py -i <file> -d <file> [-p <p>]
   eval_keyphraseness.py -h | --help
 Options:
   -i <file>     Trained model to evaluate
   -d <file>     XML dump to test prediction
-  -c <c>        Number of cpu cores to use [default: 4].
+  -p <p>        Number of cpu cores to use [default: 4].
   -h --help     Show this screen.
 """
 from docopt import docopt

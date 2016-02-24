@@ -7,11 +7,12 @@ from featureforge.feature import Feature
 # left_words
 # right_words
 # top_words
-Context = namedtuple('Context', 'keyword left_words right_words top_words')
+Context = namedtuple('Context', 'keyword l_words r_words top_words')
 
 
 def current_keyword(c):
-    return c.keyword
+    keyword = c.keyword
+    return keyword
 
 
 class NLeftWord(Feature):
@@ -20,7 +21,8 @@ class NLeftWord(Feature):
         self.n = n
 
     def _evaluate(self, c):
-        c.left_words[self.n]
+        l_words = c.l_words
+        return l_words[self.n]
 
 
 class NRightWord(Feature):
@@ -29,7 +31,8 @@ class NRightWord(Feature):
         self.n = n
 
     def _evaluate(self, c):
-        c.right_words[self.n]
+        r_words = c.r_words
+        return r_words[self.n]
 
 
 class NTopWord(Feature):
@@ -38,4 +41,5 @@ class NTopWord(Feature):
         self.n = n
 
     def _evaluate(self, c):
-        c.top_words[self.n]
+        top_words = c.top_words
+        return top_words[self.n]
