@@ -121,7 +121,7 @@ if __name__ == '__main__':
                             for keyword in keywords:
 
                                 # Exclude some specific wikipedia keywords
-                                if not keyword.startswith(IGNORED_KEYWORDS):
+                                if not keyword.lower().startswith(IGNORED_KEYWORDS):
                                     key_id = extract_keyword_id(keyword)
                                     key_name = extract_keyword_name(keyword)
                                     # Clean keyword name
