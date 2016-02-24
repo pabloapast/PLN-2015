@@ -33,7 +33,7 @@ def extract_node_text(elem, tag):
 
 
 def extract_keywords(text):
-    return MATCH_KEYWORDS.findall(text)
+    return set(MATCH_KEYWORDS.findall(text))
 
 
 def clean_text(text):
@@ -76,74 +76,75 @@ def clean_keyword_name(keyword_name):
 if __name__ == '__main__':
     opts = docopt(__doc__)
 
-    # root_node = etree.Element("wikipedia")
+    xml_header = b'<enwiki>\n'
+    xml_tail = b'</enwiki>\n'
+
+    out = open(opts['-o'], 'ab')
+
+    out.write(xml_header)
 
     # Reader that iterates over each wikipedia page in the xml
     xml_reader = etree.iterparse(opts['-i'], tag=PAGE_TAG)
 
-    with etree.xmlfile(opts['-o']) as xf:
-        with xf.element('wikipedia'):
+    for event, elem in xml_reader:
+        # Extract page ID (page type), we only want to parse articles
+        namespace_id = extract_node_text(elem, NAMESPACE_TAG)
+        # Check if is a redirect article, we want to exclude this article
+        # because doesn't have valuable information
+        try:
+            _ = extract_node_text(elem, REDIRECT_TAG)
+            is_redirect = True
+        except StopIteration:
+            article_title = extract_node_text(elem, TITLE_TAG)
+            is_redirect = False
 
-            for event, elem in xml_reader:
-                # Extract page ID (page type), we only want to parse articles
-                namespace_id = extract_node_text(elem, NAMESPACE_TAG)
-                # Check if is a redirect article, we want to exclude this article
-                # because doesn't have valuable information
-                try:
-                    _ = extract_node_text(elem, REDIRECT_TAG)
-                    is_redirect = True
-                except StopIteration:
-                    article_title = extract_node_text(elem, TITLE_TAG)
-                    is_redirect = False
+        if namespace_id == ARTICLE_ID and not is_redirect:
+            # Text in the article
+            text = extract_node_text(elem, TEXT_TAG)
+            if text is not None:
+                # Find keywords, they are between '[[' ']]'
+                keywords = [key for key in extract_keywords(text)
+                            if not key.lower().startswith(IGNORED_KEYWORDS)]
 
-                if namespace_id == ARTICLE_ID and not is_redirect:
-                    # Text in the article
-                    text = extract_node_text(elem, TEXT_TAG)
-                    if text is not None:
-                        # Find keywords, they are between '[[' ']]'
-                        keywords = set(extract_keywords(text))
-                        # Clean text
-                        cleaned_text = clean_text(text)
+                if len(keywords) > 0:
+                    # Clean text
+                    cleaned_text = clean_text(text)
 
-                        # Build xml nodes
-                        # Article node
-                        with xf.element('article', title=article_title):
-                        # article_node = etree.Element('article', title=article_title)
+                    # Build xml nodes
+                    # Article node
+                    article_node = etree.Element('article', title=article_title)
 
-                            # Text node
-                            with xf.element('text'):
-                            # text_node = etree.Element('text')
-                            # text_node.text = text
-                            # article_node.append(text_node)
-                                xf.write(cleaned_text)
+                    # Text node
+                    text_node = etree.Element('text')
+                    text_node.text = cleaned_text
+                    article_node.append(text_node)
 
-                            # Keywords nodes
-                            for keyword in keywords:
+                    # Keywords nodes
+                    for keyword in keywords:
+                        key_id = extract_keyword_id(keyword)
+                        key_name = extract_keyword_name(keyword)
+                        # Clean keyword name
+                        key_name = clean_keyword_name(key_name)
+                        # Left and right words
+                        l_words, r_words = extract_surround_words(keyword, text)
+                        # Build node
+                        keyword_node = etree.Element('keyword', id=key_id,
+                                                     name=key_name,
+                                                     l_words=l_words,
+                                                     r_words=r_words)
+                        article_node.append(keyword_node)
 
-                                # Exclude some specific wikipedia keywords
-                                if not keyword.lower().startswith(IGNORED_KEYWORDS):
-                                    key_id = extract_keyword_id(keyword)
-                                    key_name = extract_keyword_name(keyword)
-                                    # Clean keyword name
-                                    key_name = clean_keyword_name(key_name)
-                                    # Left and right words
-                                    l_words, r_words = extract_surround_words(keyword, text)
-                                    # Build node
-                                    keyword_node = etree.Element('keyword', id=key_id,
-                                                                 name=key_name,
-                                                                 l_words=l_words,
-                                                                 r_words=r_words)
-                                    xf.write(keyword_node)
-                            #         article_node.append(keyword_node)
+                    out.write(etree.tostring(article_node, pretty_print=True))
 
-                            # root_node.append(article_node)
-
-                # Clear xml node
-                elem.clear()
-                while elem.getprevious() is not None:
-                    del elem.getparent()[0]
+        # Clear xml node
+        elem.clear()
+        while elem.getprevious() is not None:
+            del elem.getparent()[0]
 
     del xml_reader
+
+    out.write(xml_tail)
+    out.close()
 
     # # Write to xml file
     # with open(opts['-o'], 'wb') as f:
