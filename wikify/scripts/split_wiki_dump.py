@@ -9,7 +9,7 @@ Options:
   -h --help     Show this screen.
 """
 from docopt import docopt
-import os
+from os.path import basename, join, splitext
 import pickle
 import random
 
@@ -25,11 +25,11 @@ if __name__ == '__main__':
     input_file = opts['-i']
 
     # open output files
-    train_out = open(os.path.join(opts['-o'],
-                     os.path.basename(input_file) + '-train'),
+    train_out = open(join(opts['-o'],
+                     basename(splitext(input_file)[0]) + '-train.xml'),
                      'ab')
-    test_out = open(os.path.join(opts['-o'],
-                    os.path.basename(input_file) + '-test'),
+    test_out = open(join(opts['-o'],
+                    basename(splitext(input_file)[0]) + '-test.xml'),
                     'ab')
 
     # write xml header
