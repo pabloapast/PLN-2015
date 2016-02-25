@@ -38,7 +38,6 @@ def extract_keywords(text):
 
 def clean_text(text):
     text = text.lower()  # Convert all words to lowercase
-    text = CLEAN_TEXT.sub('', text)  # Delete text between '{{' '}}'
     return ' '.join(TOKENIZE_TEXT.tokenize(text))
 
 
