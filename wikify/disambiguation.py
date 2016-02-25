@@ -21,7 +21,7 @@ from sklearn.pipeline import Pipeline
 class Disambiguation:
 
     def __init__(self, xml, n=3, surround=6, top=10,
-                 classifier='LogisticRegression'):
+                 classifier='MultinomialNB'):
         self.n = n
         self.surround = surround
         self.top = top

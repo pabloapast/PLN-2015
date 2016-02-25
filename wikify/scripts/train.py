@@ -7,7 +7,7 @@ Options:
                       keyphraseness: Train the 'keyphraseness' ranking method.
                       disambiguation: Train the disambiguation method.
   -i <file>         XML dump to train the model.
-  -c <classifier>   Classfier to use in word disambiguation [default: LogisticRegression]:
+  -c <classifier>   Classfier to use in word disambiguation [default: MultinomialNB]:
                       LogisticRegression: Logistic Regression
                       LinearSVC: Linear Support Vector Classification
                       MultinomialNB: Multinomial Naive Bayes

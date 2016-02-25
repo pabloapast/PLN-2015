@@ -39,10 +39,7 @@ def extract_keywords(text):
 def clean_text(text):
     text = text.lower()  # Convert all words to lowercase
     text = CLEAN_TEXT.sub('', text)  # Delete text between '{{' '}}'
-    # Only alphanumeric elements and delete undesirable words
-    tokens = [token for token in TOKENIZE_TEXT.tokenize(text)
-              if token not in NONWORDS]
-    return ' '.join(tokens)
+    return ' '.join(TOKENIZE_TEXT.tokenize(text))
 
 
 def clean_surround(text):
@@ -66,11 +63,11 @@ def extract_keyword_id(keyword):
 
 
 def extract_keyword_name(keyword):
-    return keyword.split('|')[-1].lower()
+    return keyword.split('|')[-1]
 
 
 def clean_keyword_name(keyword_name):
-    return ' '.join(TOKENIZE_TEXT.tokenize(keyword_name))
+    return ' '.join(TOKENIZE_TEXT.tokenize(keyword_name.lower()))
 
 
 if __name__ == '__main__':
@@ -101,15 +98,15 @@ if __name__ == '__main__':
         if namespace_id == ARTICLE_ID and not is_redirect:
             # Text in the article
             text = extract_node_text(elem, TEXT_TAG)
+
             if text is not None:
                 # Find keywords, they are between '[[' ']]'
                 keywords = [key for key in extract_keywords(text)
                             if not key.lower().startswith(IGNORED_KEYWORDS)]
+                # Clean text
+                cleaned_text = clean_text(text)
 
-                if len(keywords) > 0:
-                    # Clean text
-                    cleaned_text = clean_text(text)
-
+                if len(keywords) > 0 and len(cleaned_text) > 0:
                     # Build xml nodes
                     # Article node
                     article_node = etree.Element('article', title=article_title)
