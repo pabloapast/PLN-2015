@@ -9,6 +9,11 @@ Options:
 """
 from docopt import docopt
 import pickle
+import sys
+
+from lxml import etree
+
+from wikify.const import STOPWORDS
 
 
 def progress(msg, width=None):
@@ -27,28 +32,34 @@ if __name__ == '__main__':
         model = pickle.load(f)
 
     hits, total = 0, 0
-    for i, _, elem in enumerate(etree.iterparse(opts['-d'] , tag='article')):
+    for i, (_, elem) in enumerate(etree.iterparse(opts['-d'] , tag='article')):
         text_iterator = elem.iterchildren(tag='text')
         text = next(text_iterator).text
 
-        count_words = Counter([word for word in text.split()
-                               if not word.isdigit() and word not in STOPWORDS])
-        top_words, _ = zip(*count_words.most_common(self.top))
-        top_words = list(top_words)
+        # count_words = Counter([word for word in text.split()
+        #                        if not word.isdigit() and word not in STOPWORDS])
+        # top_words, _ = zip(*count_words.most_common(self.top))
+        # top_words = list(top_words)
 
         keyword_iterator = elem.iterchildren(tag='keyword')
+        keyword_iterator = [keyword for keyword in keyword_iterator
+                            if keyword.attrib['name'] in model._vocabulary]
 
-        context_list = model.text_context(keyword_iterator, top_words)
+        # context_list = model.text_context(keyword_iterator, top_words)
+        # gold_key_id = model.text_ids(keyword_iterator)
+        # predicted_key_id = [model.desambiguate(c) for c in context_list]
+        # hits_article = [g == p for g, p in zip(gold_key_id, predicted_key_id)]
+        # hits += sum(hits_article)
+        # total += len(gold_key_id)
+        # presicion = hits / total
 
         gold_key_id = model.text_ids(keyword_iterator)
-
-        predicted_key_id = [model.desambiguate(c) for c in context_list]
+        context_list = model.text_context(keyword_iterator)
+        predicted_key_id = [model.disambiguate(k, s) for k, s in context_list]
 
         hits_article = [g == p for g, p in zip(gold_key_id, predicted_key_id)]
-
         hits += sum(hits_article)
         total += len(gold_key_id)
-
         presicion = hits / total
 
         progress('{} articles processed - precision: {:2.2f}%'.format(i,
