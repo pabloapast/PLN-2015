@@ -1,9 +1,8 @@
-from collections import Counter
+from collections import Counter, defaultdict
 from heapq import nlargest
 from math import ceil
-from multiprocessing import Pool
+import pickle
 import re
-import time
 
 from lxml import etree
 from nltk.corpus import stopwords
@@ -17,66 +16,50 @@ from wikify.utils import fast_xml_iter, clean_keywords
 
 NONWORDS = ['ref', 'http', 'https', 'lt', 'gt', 'quot', 'wbr', 'shy', 'www',\
             'com', 'url', 'ref', 'st', 'll']
-STOPWORDS = stopwords.words('english') + NONWORDS + ['']
+STOPWORDS = set(stopwords.words('english') + NONWORDS + [''])
 
 
 class Keyphraseness:
 
-    def __init__(self, xml, n=3, processes=4, ratio=0.1):
+    def __init__(self, xml, n=3, ratio=0.04):
         self.n = n
         self.ratio = ratio
 
-        start_time = time.time()
-        # Vocabulary of keywords with their occurrence count
-        _vocabulary = Counter()
+        # keywords name with their occurrence count
+        _names_count = Counter()
         # Iterates over articles in xml and extract keywords
-        for _, elem in etree.iterparse(xml, tag='article'):
-            keywords = self.extract_keywords(elem)
-            _vocabulary.update(keywords)
+        for _, article in etree.iterparse(xml, tag='article'):
+            _names_count.update(self.extract_keywords(article))
             # Clear data read
-            elem.clear()
-            while elem.getprevious() is not None:
-                del elem.getparent()[0]
+            article.clear()
+            while article.getprevious() is not None:
+                del article.getparent()[0]
 
-        # Delete keywords that occurs less than 5 times
-        for key, value in list(_vocabulary.items()):
-            if value < 5:
-                del _vocabulary[key]
-        for w in STOPWORDS:
-            if w in _vocabulary:
-                del _vocabulary[w]
+        # Delete undesirable keywords or that occurs less than 5 times
+        for key, value in list(_names_count.items()):
+            if value < 5 or key in STOPWORDS:
+                del _names_count[key]
 
-        print("--- %s sec: extract_keywords ---" % (time.time() - start_time))
-        self._vocabulary_len = len(_vocabulary)
-        print('vocabulary len = ', self._vocabulary_len)
+        self._names_len = len(_names_count)
+        print('vocabulary len = ', self._names_len)
 
-        start_time = time.time()
+
         self._vectorizer = CountVectorizer(ngram_range=(1, self.n),
-                                           vocabulary=list(_vocabulary.keys()))
-        # self._vectorizer.fit([])
-        _keywords_counts = np.zeros((1, self._vocabulary_len), dtype=np.int)
+                                           vocabulary=list(_names_count.keys()))
+        _keywords_counts = np.zeros((1, self._names_len), dtype=np.int)
         # Iterates over articles in xml and count keywords
-        for _, elem in etree.iterparse(xml, tag='article'):
-            _keywords_counts += self.count_keywords(elem)
+        for _, article in etree.iterparse(xml, tag='article'):
+            _keywords_counts += self.count_keywords(article)
             # Clear data read
-            elem.clear()
-            while elem.getprevious() is not None:
-                del elem.getparent()[0]
+            article.clear()
+            while article.getprevious() is not None:
+                del article.getparent()[0]
 
-        # _keywords_counts = self.count_keywords(xml, processes)
-        # print(self._vectorizer.get_feature_names())
-        # print(_keywords_counts)
-        self._index_to_feature = self._vectorizer.get_feature_names()
-        print("--- %s sec: count_keywords ---" % (time.time() - start_time))
+        self._vocabulary = self._vectorizer.get_feature_names()
 
-        # print(np.sum(_keywords_counts))
-        l = [n for i, n in enumerate(self._index_to_feature)
-             if _keywords_counts[0, i] == 0]
-        print(l)
-        # print(self._index_to_feature[24])
-        self._keyphraseness = np.zeros((1, self._vocabulary_len))
-        for index, keyword in enumerate(self._index_to_feature):
-            self._keyphraseness[0, index] = _vocabulary[keyword] /\
+        self._keyphraseness = np.zeros((1, self._names_len))
+        for index, keyword in enumerate(self._vocabulary):
+            self._keyphraseness[0, index] = _names_count[keyword] /\
                                             _keywords_counts[0, index]
 
 
@@ -106,4 +89,4 @@ class Keyphraseness:
         top_keywords = nlargest(total_words, keyword_with_prob,
                                 key=lambda t: t[1])
 
-        return [self._index_to_feature[index] for index, prob in top_keywords]
+        return [self._vocabulary[index] for index, prob in top_keywords]
