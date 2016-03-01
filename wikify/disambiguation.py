@@ -1,121 +1,86 @@
-from collections import Counter
-import re
-
-from wikify.const import PAGE_TAG, TEXT_TAG, NAMESPACE_TAG, ARTICLE_ID, CLEAN_REGEX,\
-                         STOPWORDS
-from wikify.features import Context, current_keyword, NLeftWord, NRightWord,\
-                            NTopWord
-from wikify.utils import clean_keywords, clean_text
-
 from lxml import etree
-from nltk.stem.snowball import SnowballStemmer
-from featureforge.vectorizer import Vectorizer
-from sklearn import svm
-from sklearn.linear_model import LogisticRegression
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.svm import LinearSVC
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.pipeline import Pipeline
+from nltk.stem.snowball import EnglishStemmer
+from nltk.wsd import lesk
 
 
 class Disambiguation:
 
-    def __init__(self, xml, n=3, surround=6, top=10,
-                 classifier='MultinomialNB'):
-        self.n = n
-        self.surround = surround
-        self.top = top
+    def __init__(self, xml, vocabulary, n=3, surround=6, top=10):
+        self._vocabulary = set(vocabulary)
+        self._n = n
+        self._surround = surround
+        self._top = top
 
-        classifiers = {'LogisticRegression': LogisticRegression(),
-                       'LinearSVC': LinearSVC(),
-                       'MultinomialNB': MultinomialNB(),
-                       'DecisionTreeClassifier': DecisionTreeClassifier(),
-                       }
+        self._stemmer = _stemmer = EnglishStemmer(ignore_stopwords=False)
+        self._lesk_defs = _lesk_defs = dict()
+        self._key_name_id = _key_name_id = dict()
 
-        features = []
-        features.append(current_keyword)
-        for i in range(self.surround):
-            features.append(NLeftWord(i))
-            features.append(NRightWord(i))
-        for i in range(self.top):
-            features.append(NTopWord(i))
-        self.clf = clf = Pipeline([('vect', Vectorizer(features)),
-                                   ('clf', classifiers[classifier])])
-        clf = clf.fit(self.texts_context(xml), self.texts_ids(xml))
+        for _, article in etree.iterparse(xml, tag='article'):
+            childrens = article.getchildren()
 
+            keywords = [keyword for keyword in childrens[1:]
+                        if keyword.attrib['name'] in self._vocabulary]
 
-    def texts_context(self, xml):
-        context_list = []
-        xml_reader = etree.iterparse(xml, tag='article')
+            for keyword in keywords:
+                key_name = keyword.attrib['name']
+                key_id = keyword.attrib['id']
+                l_words = keyword.attrib['l_words'].split()[-self._surround:]
+                r_words = keyword.attrib['r_words'].split()[:self._surround]
 
-        for event, elem in xml_reader:
-            text_iterator = elem.iterchildren(tag='text')
-            text = next(text_iterator).text
-            # assert text is not None
+                l_words = [_stemmer.stem(w) for w in l_words]
+                r_words = [_stemmer.stem(w) for w in r_words]
 
-            count_words = Counter([word for word in text.split()
-                                   if not word.isdigit() and word not in STOPWORDS])
-            top_words, _ = zip(*count_words.most_common(self.top))
-            top_words = list(top_words)
+                sent = ' '.join(l_words + [key_name] + r_words)
+                synset = lesk(sent, key_name)
 
-            keyword_iterator = elem.iterchildren(tag='keyword')
+                if synset is not None:
+                    _lesk_defs[synset.name()] = key_id
 
-            context_list += self.text_context(keyword_iterator, top_words)
+                _key_name_id[key_name] = key_id
 
             # Clear data read
-            elem.clear()
-            while elem.getprevious() is not None:
-                del elem.getparent()[0]
-
-        del xml_reader
-
-        return context_list
+            article.clear()
+            while article.getprevious() is not None:
+                del article.getparent()[0]
 
 
-    def text_context(self, keyword_iterator, top_words):
+    def disambiguate(self, keyword, sent):
+        surround = sent.split(keyword)
+        l_words, r_words = surround[0], surround[-1]
+        l_words = [self._stemmer.stem(w) for w in l_words]
+        r_words = [self._stemmer.stem(w) for w in r_words]
+
+        sent = ' '.join(l_words + [keyword] + r_words)
+
+        res = 'None'
+        synset = lesk(sent, keyword)
+        if synset is not None and synset.name() in self._lesk_defs.keys():
+            res = self._lesk_defs[synset.name()]
+        else:
+            res = self._key_name_id[keyword]
+
+        return res
+
+
+    def text_context(self, keywords, top_words=None):
         context_list = []
 
-        for keyword in keyword_iterator:
+        for keyword in keywords:
             key_name = keyword.attrib['name']
-            l_words = keyword.attrib['l_words'].split()[-self.surround:]
-            l_words = ['']*(self.surround - len(l_words)) + l_words
-            r_words = keyword.attrib['r_words'].split()[:self.surround]
-            r_words = r_words + ['']*(self.surround - len(r_words))
+            l_words = keyword.attrib['l_words'].split()[-self._surround:]
+            r_words = keyword.attrib['r_words'].split()[:self._surround]
 
-            # print(Context(key_name, l_words, r_words, top_words))
-            context_list.append(Context(key_name, l_words, r_words, top_words))
+            context_list.append((key_name, ' '.join(l_words + [key_name] + r_words)))
 
         return context_list
 
 
-    def texts_ids(self, xml):
-        key_id_list = []
-        xml_reader = etree.iterparse(xml, tag='article')
-
-        for event, elem in xml_reader:
-
-            keyword_iterator = elem.iterchildren(tag='keyword')
-
-            key_id_list += self.text_ids(keyword_iterator)
-
-            # Clear data read
-            elem.clear()
-            while elem.getprevious() is not None:
-                del elem.getparent()[0]
-        del xml_reader
-
-        return key_id_list
-
-
-    def text_ids(self, keyword_iterator):
+    def text_ids(self, keywords):
         key_id_list = []
 
-        for keyword in keyword_iterator:
+        for keyword in keywords:
             key_id = keyword.attrib['id']
             key_id_list.append(key_id)
 
         return key_id_list
 
-
-    def desambiguate(self, c):
-        return self.clf.predict([c])
