@@ -1,25 +1,31 @@
-import re
-from string import punctuation
+# import re
+# from string import punctuation
 
-from nltk.tokenize import RegexpTokenizer
+# from nltk.tokenize import RegexpTokenizer
 from nltk.corpus import stopwords
 
 
-NAMESPACE = '{*}'  # Wildcard
-ARTICLE_ID = '0'  # Id = 0 is assigned to wikipedia articles
-NAMESPACE_TAG = NAMESPACE + 'ns'
-PAGE_TAG = NAMESPACE + 'page'
-TITLE_TAG = NAMESPACE + 'title'
-REDIRECT_TAG = NAMESPACE + 'redirect'
-TEXT_TAG = NAMESPACE + 'text'
+ARTICLE_TAG = 'article'
+TEXT_TAG = 'text'
+KEYWORD_TAG = 'keyword'
+
+# English stopwords (i, me, my, myself, we, our ...)
+STOPWORDS = set(stopwords.words('english'))
+
+# Words that appear linked in wikipedia but are ignored
+NONWORDS = set(['ref', 'http', 'https', 'lt', 'gt', 'quot', 'wbr', 'shy',
+                'www', 'com', 'url', 'ref', 'st', 'll', ''])
+
+# Ignored words, not include in vocabulary: STOPWORDS + NONWORDS
+IGNORED_KEYWORDS = STOPWORDS.union(NONWORDS)
 
 # Ignore keywords starting with this names
-IGNORED_KEYWORDS = ('image:', 'file:', 'category:', 'wikipedia:')
+# IGNORED_KEYWORDS = ('image:', 'file:', 'category:', 'wikipedia:')
 
-PUNCTUATION = punctuation + "\'\'\"\""
+# PUNCTUATION = punctuation + "\'\'\"\""
 
-STOPWORDS = stopwords.words('english')
+# STOPWORDS = stopwords.words('english')
 
-CLEAN_REGEX = RegexpTokenizer(r'(?u)\b\w\w+\b')
+# CLEAN_REGEX = RegexpTokenizer(r'(?u)\b\w\w+\b')
 
-MATCH_KEYWORDS = re.compile('\[\[([^][]+)\]\]', re.IGNORECASE)
+# MATCH_KEYWORDS = re.compile('\[\[([^][]+)\]\]', re.IGNORECASE)
