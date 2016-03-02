@@ -3,12 +3,11 @@ from heapq import nlargest
 from math import ceil
 
 from lxml import etree
-from nltk.corpus import stopwords
 import numpy as np
 from sklearn.feature_extraction.text import CountVectorizer
 
-from wikify.const import ARTICLE_TAG, IGNORED_KEYWORDS, KEYWORD_TAG, TEXT_TAG
-from wikify.utils import clear_xml_node
+from wikify.const import ARTICLE_TAG, IGNORED_KEYWORDS, KEYWORD_TAG
+from wikify.utils import article_text, clear_xml_node
 
 
 class Keyphraseness:
@@ -49,7 +48,6 @@ class Keyphraseness:
             self._keyphraseness[0, index] = names_count[keyword] /\
                                             keywords_counts[0, index]
 
-
     def extract_keywords(self, article):
         """Extract keywords from articles
         Only extracts n-grams between (1, n)
@@ -61,17 +59,14 @@ class Keyphraseness:
         return [keyword.attrib['name'] for keyword in keywords
                 if len(keyword.attrib['name'].split()) <= self.n]
 
-
     def count_keywords(self, article):
         """Count keywords occurrences in text
 
         article -- article contained in a xml node
         """
-        text = article.iterchildren(tag=TEXT_TAG)
-        text = next(text).text
+        text = article_text(article)
 
         return self._vectorizer.transform([text])
-
 
     def rank(self, text, ratio=None):
         """Filter most important keywords from a text
