@@ -1,28 +1,21 @@
 """Train components of wikify
 Usage:
-  train.py -m <model> -i <file> [--vocabulary <file>] [--classes <file>] [-n <n>]
-           [--surround <s>] [--top <t>] [-c <classifier>] [--ratio <r>]
-           [--saveVocabulary] [--saveClasses] -o <file>
+  train.py -m <model> -i <file> [--vocabulary <file>] [-n <n>] [--surround <s>]
+           [--ratio <r>] -o <file>
   train.py -h | --help
 Options:
   -m <model>            Model to train:
-                          keyphraseness: Train the 'keyphraseness' ranking method.
+                          keyphraseness: Train the 'keyphraseness' ranking
+                          method.
                           disambiguation: Train the disambiguation method.
   -i <file>             XML dump to train the model.
-  --vocabulary <file>   Vocabulary learned in the keyphraseness method.
-  --classes <file>      All the possible classes that we need to disambiguate.
+  --vocabulary <file>   Load vocabulary learned in the keyphraseness method.
   -n <n>                N-gram range (1, n) [default: 3].
-  --surround <s>        Amount of sorround words used in disambiguation features [default: 6].
-  --top <t>             Amount of top words used in disambiguation features [default: 10].
-  -c <classifier>       Classfier to use in word disambiguation [default: SGDClassifier]:
-                          MultinomialNB: Multinomial Naive Bayes
-                          LogisticRegression: Logistic Regression
-                          LinearSVC: Linear Support Vector Classification
-                          SGDClassifier
-  --ratio <r>           Ratio between number of words in an article and number of
-                        keywords, used in Keyphraseness [default: 0.04].
-  --saveVocabulary      Save vocabulary of keyphraseness method [default: False].
-  --saveClasses         Save classes of disambiguation method [default: False].
+  --surround <s>        Amount of sorround words used in disambiguation
+                        features [default: 6].
+  --ratio <r>           Relation between number of words in an article and
+                        number of keywords, used in Keyphraseness
+                        [default: 0.04].
   -o <file>             Output model file.
   -h --help             Show this screen.
 """
@@ -36,30 +29,21 @@ from wikify.disambiguation import Disambiguation
 if __name__ == '__main__':
     opts = docopt(__doc__)
 
-    # Corpus
+    # XML corpus
     xml = opts['-i']
 
     # Train the model
     if opts['-m'] == 'keyphraseness':
         model = Keyphraseness(xml=xml, n=eval(opts['-n']),
                               ratio=eval(opts['--ratio']))
-        if opts['--saveVocabulary']:
-            with open(opts['-o'] + '-vocabulary', 'wb') as f:
-                pickle.dump(model._vocabulary, f)
 
     elif opts['-m'] == 'disambiguation':
         with open(opts['--vocabulary'], 'rb') as f:
-            keyphraseness_vocabulary = pickle.load(f)
-
-        classes = None
-        if opts['--classes'] is not None:
-            with open(opts['--classes'], 'rb') as f:
-                classes = pickle.load(f)
+            keyphraseness = pickle.load(f)
+            keyphraseness_vocabulary = keyphraseness.vocabulary
 
         model = Disambiguation(xml=xml, vocabulary=keyphraseness_vocabulary,
-                               n=eval(opts['-n']),
-                               surround=eval(opts['--surround']),
-                               top=eval(opts['--top']))
+                               surround=eval(opts['--surround']))
 
     # Save it
     with open(opts['-o'], 'wb') as f:

@@ -1,22 +1,14 @@
-from collections import Counter, defaultdict
+from collections import Counter
 from heapq import nlargest
 from math import ceil
-import pickle
-import re
 
 from lxml import etree
 from nltk.corpus import stopwords
 import numpy as np
 from sklearn.feature_extraction.text import CountVectorizer
 
-from wikify.const import PAGE_TAG, TEXT_TAG, NAMESPACE_TAG, ARTICLE_ID,\
-                         PUNCTUATION
-from wikify.utils import fast_xml_iter, clean_keywords
-
-
-NONWORDS = ['ref', 'http', 'https', 'lt', 'gt', 'quot', 'wbr', 'shy', 'www',\
-            'com', 'url', 'ref', 'st', 'll']
-STOPWORDS = set(stopwords.words('english') + NONWORDS + [''])
+from wikify.const import ARTICLE_TAG, IGNORED_KEYWORDS, KEYWORD_TAG, TEXT_TAG
+from wikify.utils import clear_xml_node
 
 
 class Keyphraseness:
@@ -25,68 +17,78 @@ class Keyphraseness:
         self.n = n
         self.ratio = ratio
 
-        # keywords name with their occurrence count
-        _names_count = Counter()
+        # Keywords names with their occurrence count
+        names_count = Counter()
         # Iterates over articles in xml and extract keywords
-        for _, article in etree.iterparse(xml, tag='article'):
-            _names_count.update(self.extract_keywords(article))
+        for _, article in etree.iterparse(xml, tag=ARTICLE_TAG):
+            names_count.update(self.extract_keywords(article))
             # Clear data read
-            article.clear()
-            while article.getprevious() is not None:
-                del article.getparent()[0]
+            clear_xml_node(article)
 
         # Delete undesirable keywords or that occurs less than 5 times
-        for key, value in list(_names_count.items()):
-            if value < 5 or key in STOPWORDS:
-                del _names_count[key]
+        for key, value in list(names_count.items()):
+            if value < 5 or key in IGNORED_KEYWORDS:
+                del names_count[key]
+        print('vocabulary len = ', len(names_count))
 
-        self._names_len = len(_names_count)
-        print('vocabulary len = ', self._names_len)
-
-
+        # Used to count keywords occurrences in articles
         self._vectorizer = CountVectorizer(ngram_range=(1, self.n),
-                                           vocabulary=list(_names_count.keys()))
-        _keywords_counts = np.zeros((1, self._names_len), dtype=np.int)
+                                           vocabulary=list(names_count.keys()))
+
         # Iterates over articles in xml and count keywords
-        for _, article in etree.iterparse(xml, tag='article'):
-            _keywords_counts += self.count_keywords(article)
+        keywords_counts = np.zeros((1, len(names_count)), dtype=np.int)
+        for _, article in etree.iterparse(xml, tag=ARTICLE_TAG):
+            keywords_counts += self.count_keywords(article)
             # Clear data read
-            article.clear()
-            while article.getprevious() is not None:
-                del article.getparent()[0]
+            clear_xml_node(article)
 
-        self._vocabulary = self._vectorizer.get_feature_names()
+        self.vocabulary = self._vectorizer.get_feature_names()
 
-        self._keyphraseness = np.zeros((1, self._names_len))
-        for index, keyword in enumerate(self._vocabulary):
-            self._keyphraseness[0, index] = _names_count[keyword] /\
-                                            _keywords_counts[0, index]
+        self._keyphraseness = np.zeros((1, len(names_count)))
+        for index, keyword in enumerate(self.vocabulary):
+            self._keyphraseness[0, index] = names_count[keyword] /\
+                                            keywords_counts[0, index]
 
 
     def extract_keywords(self, article):
-        keywords = article.iterchildren(tag='keyword')
+        """Extract keywords from articles
+        Only extracts n-grams between (1, n)
+
+        article -- article contained in a xml node
+        """
+        keywords = article.iterchildren(tag=KEYWORD_TAG)
 
         return [keyword.attrib['name'] for keyword in keywords
                 if len(keyword.attrib['name'].split()) <= self.n]
 
 
     def count_keywords(self, article):
-        text = article.iterchildren(tag='text')
+        """Count keywords occurrences in text
+
+        article -- article contained in a xml node
+        """
+        text = article.iterchildren(tag=TEXT_TAG)
         text = next(text).text
 
         return self._vectorizer.transform([text])
 
 
     def rank(self, text, ratio=None):
+        """Filter most important keywords from a text
+
+        text -- text string
+        ratio -- relation between number of keywords and number of words in
+                 text, if it's None uses default number
+        """
         if ratio is None:
             ratio = self.ratio
 
-        total_words = ceil(ratio * len(text.split()))
-
-        m = self._vectorizer.transform([text])
-        rows, cols = m.nonzero()
+        count = self._vectorizer.transform([text])
+        rows, cols = count.nonzero()
         keyword_with_prob = list(zip(cols, self._keyphraseness[0, cols]))
-        top_keywords = nlargest(total_words, keyword_with_prob,
-                                key=lambda t: t[1])
 
-        return [self._vocabulary[index] for index, prob in top_keywords]
+        # Extract index of m keywords with major probability
+        m = ceil(ratio * len(text.split()))
+        top_keywords = nlargest(m, keyword_with_prob, key=lambda t: t[1])
+
+        return [self.vocabulary[index] for index, prob in top_keywords]
