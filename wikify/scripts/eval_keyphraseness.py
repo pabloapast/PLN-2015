@@ -40,6 +40,8 @@ if __name__ == '__main__':
 
     n = eval(opts['-n'])
 
+    vocabulary = set(model.vocabulary)
+
     count_articles, hits, gold_total, predicted_total = 0, 0, 0, 0
     for _, article in etree.iterparse(xml, tag=ARTICLE_TAG):
         # Article text
@@ -48,7 +50,7 @@ if __name__ == '__main__':
         keywords = model.extract_keywords(article)
         # Keep only keywords contained in the vocabulary
         gold_keywords = set([keyword for keyword in keywords
-                             if keyword in model.vocabulary])
+                             if keyword in vocabulary])
 
         article_ratio = len(gold_keywords) / len(text.split())
         if model.ratio - 0.01 <= article_ratio <= model.ratio + 0.01:

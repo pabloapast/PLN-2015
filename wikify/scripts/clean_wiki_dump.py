@@ -17,6 +17,14 @@ from nltk.tokenize import RegexpTokenizer
 from wikify.const import NAMESPACE, ARTICLE_ID, NAMESPACE_TAG,\
                          PAGE_TAG, TITLE_TAG, REDIRECT_TAG, TEXT_TAG
 
+NAMESPACE = '{*}'  # Wildcard
+ARTICLE_ID = '0'  # Id = 0 is assigned to wikipedia articles
+NAMESPACE_TAG = NAMESPACE + 'ns'
+PAGE_TAG = NAMESPACE + 'page'
+TITLE_TAG = NAMESPACE + 'title'
+REDIRECT_TAG = NAMESPACE + 'redirect'
+TEXT_TAG = NAMESPACE + 'text'
+
 
 MATCH_KEYWORDS = re.compile('\[\[([^][]+)\]\]', re.IGNORECASE)
 CLEAN_TEXT = re.compile('\{\{.*\}\}|\{\{.*\\n|.*\\n\}\}')
