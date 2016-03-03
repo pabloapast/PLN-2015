@@ -7,7 +7,7 @@ import numpy as np
 from sklearn.feature_extraction.text import CountVectorizer
 
 from wikify.const import ARTICLE_TAG, IGNORED_KEYWORDS, KEYWORD_TAG
-from wikify.utils import article_text, clear_xml_node
+from wikify.utils import article_keywords, article_text, clear_xml_node
 
 
 class Keyphraseness:
@@ -54,7 +54,7 @@ class Keyphraseness:
 
         article -- article contained in a xml node
         """
-        keywords = article.iterchildren(tag=KEYWORD_TAG)
+        keywords = article_keywords(article)
 
         return [keyword.attrib['name'] for keyword in keywords
                 if len(keyword.attrib['name'].split()) <= self.n]

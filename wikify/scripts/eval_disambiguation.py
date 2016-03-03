@@ -1,20 +1,22 @@
 """Eval perfomance of disambiguation method
 Usage:
-  eval_disambiguation.py -i <file> -d <file>
+  eval_disambiguation.py -i <file> -d <file> -t <file> [-n <n>]
   eval_disambiguation.py -h | --help
 Options:
   -i <file>     Trained model to evaluate
   -d <file>     XML dump to test prediction
+  -t <file>     Wikipedia titles
+  -n <n>        Number of articles to analyze [default: float('inf')]
   -h --help     Show this screen.
 """
 from docopt import docopt
 import pickle
 import sys
-from collections import defaultdict, Counter
 
 from lxml import etree
 
-from wikify.const import STOPWORDS
+from wikify.const import ARTICLE_TAG
+from wikify.utils import article_keywords, clear_xml_node
 
 
 def progress(msg, width=None):
@@ -28,53 +30,43 @@ def progress(msg, width=None):
 if __name__ == '__main__':
     opts = docopt(__doc__)
 
-    titles = None
+    # XML file
+    xml = opts['-d']
+
+    n = eval(opts['-n'])
+
+    # Load wikipedia article titles
     with open('wiki-dump/mini/enwiki-test1gb-clean-titles', 'rb') as f:
         titles = pickle.load(f)
 
-    # load trained model
+    # Load trained model
     with open(opts['-i'], 'rb') as f:
         model = pickle.load(f)
 
     hits, total = 0, 0
-    errors_count = Counter()
-    for i, (_, elem) in enumerate(etree.iterparse(opts['-d'] , tag='article')):
-        text_iterator = elem.iterchildren(tag='text')
-        text = next(text_iterator).text
+    for i, (_, article) in enumerate(etree.iterparse(xml, tag=ARTICLE_TAG)):
+        keywords = article_keywords(article)
+        keywords = [keyword for keyword in keywords
+                    if keyword.attrib['name'] in model.vocabulary and
+                    keyword.attrib['id'] in titles]
 
-        # count_words = Counter([word for word in text.split()
-        #                        if not word.isdigit() and word not in STOPWORDS])
-        # top_words, _ = zip(*count_words.most_common(self.top))
-        # top_words = list(top_words)
+        # Gold data, keywords with correct sense
+        gold_key_id = model.keyword_ids(keywords)
 
-        keyword_iterator = elem.iterchildren(tag='keyword')
-        keyword_iterator = [keyword for keyword in keyword_iterator
-                            if keyword.attrib['name'] in model._vocabulary and
-                            keyword.attrib['id'] in titles]
-
-        # context_list = model.text_context(keyword_iterator, top_words)
-        # gold_key_id = model.text_ids(keyword_iterator)
-        # predicted_key_id = [model.desambiguate(c) for c in context_list]
-        # hits_article = [g == p for g, p in zip(gold_key_id, predicted_key_id)]
-        # hits += sum(hits_article)
-        # total += len(gold_key_id)
-        # presicion = hits / total
-
-        gold_key_id = model.text_ids(keyword_iterator)
-        context_list = model.text_context(keyword_iterator)
+        # Predicted data
+        context_list = model.keyword_context(keywords)
         predicted_key_id = [model.disambiguate(k, s) for k, s in context_list]
 
-        hits_article = [g.lower() == p.lower() for g, p in zip(gold_key_id, predicted_key_id)]
-
-        hits += sum(hits_article)
+        hits += sum([g.lower() == p.lower() for g, p in zip(gold_key_id,
+                                                            predicted_key_id)])
         total += len(gold_key_id)
         presicion = hits / total
 
-        progress('{} articles processed - precision: {:2.2f}%'.format(i,
-                  presicion * 100))
+        progress('{} articles processed - precision: {:2.2f}%'
+                 .format(i, presicion * 100))
 
-        erros = [(g, p) for g, p in zip(gold_key_id, predicted_key_id) if g.lower() != p.lower()]
-        errors_count.update(erros)
-        if i > 15000:
-            print(errors_count.most_common(100))
+        if i >= n:
             break
+        clear_xml_node(article)
+
+    print('\n')

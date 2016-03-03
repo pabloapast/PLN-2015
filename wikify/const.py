@@ -1,7 +1,3 @@
-# import re
-# from string import punctuation
-
-# from nltk.tokenize import RegexpTokenizer
 from nltk.corpus import stopwords
 
 
@@ -18,14 +14,3 @@ NONWORDS = set(['ref', 'http', 'https', 'lt', 'gt', 'quot', 'wbr', 'shy',
 
 # Ignored words, not include in vocabulary: STOPWORDS + NONWORDS
 IGNORED_KEYWORDS = STOPWORDS.union(NONWORDS)
-
-# Ignore keywords starting with this names
-# IGNORED_KEYWORDS = ('image:', 'file:', 'category:', 'wikipedia:')
-
-# PUNCTUATION = punctuation + "\'\'\"\""
-
-# STOPWORDS = stopwords.words('english')
-
-# CLEAN_REGEX = RegexpTokenizer(r'(?u)\b\w\w+\b')
-
-# MATCH_KEYWORDS = re.compile('\[\[([^][]+)\]\]', re.IGNORECASE)
