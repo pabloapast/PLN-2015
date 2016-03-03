@@ -36,7 +36,7 @@ if __name__ == '__main__':
     n = eval(opts['-n'])
 
     # Load wikipedia article titles
-    with open('wiki-dump/mini/enwiki-test1gb-clean-titles', 'rb') as f:
+    with open(opts['-t'], 'rb') as f:
         titles = pickle.load(f)
 
     # Load trained model
