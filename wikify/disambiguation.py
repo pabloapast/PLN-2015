@@ -1,7 +1,6 @@
 from collections import defaultdict, Counter
 
 from lxml import etree
-from nltk.stem.snowball import EnglishStemmer
 from nltk.wsd import lesk
 
 from wikify.const import ARTICLE_TAG
@@ -20,7 +19,6 @@ class Disambiguation:
         # Dict mapping words (from vocabulary) to their most
         # frequent linked wikipedia article
         self._key_name_id = _key_name_id = defaultdict(Counter)
-        self._stemmer = EnglishStemmer()
 
         for _, article in etree.iterparse(xml, tag=ARTICLE_TAG):
             # Extract keywords from article and keep only
@@ -52,9 +50,6 @@ class Disambiguation:
         # Take amount of words specified by the surround number
         l_words = l_words.split()[-self._surround:]
         r_words = r_words.split()[:self._surround]
-        # Apply stemming
-        # l_words = [self._stemmer.stem(w) for w in l_words]
-        # r_words = [self._stemmer.stem(w) for w in r_words]
 
         return l_words, r_words
 

@@ -65,4 +65,3 @@ if __name__ == '__main__':
     # Save output text
     with open(opts['-o'], 'w') as f:
         f.write(text)
-

@@ -6,7 +6,7 @@ from lxml import etree
 import numpy as np
 from sklearn.feature_extraction.text import CountVectorizer
 
-from wikify.const import ARTICLE_TAG, IGNORED_KEYWORDS, KEYWORD_TAG
+from wikify.const import ARTICLE_TAG, IGNORED_KEYWORDS
 from wikify.utils import article_keywords, article_text, clear_xml_node
 
 
