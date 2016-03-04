@@ -43,16 +43,18 @@ if __name__ == '__main__':
     # Disambiguate
     for keyword in keywords:
         original_keyword = clean_to_original[keyword]
-        original_k_index = text.index(original_keyword)
-        # l_words = text[-150:original_k_index]
-        # r_words = text[original_k_index + len(original_keyword):150]
-        l_words, r_words = extract_surround_words(original_keyword, text)
-        s = ' '.join([l_words, keyword, r_words])
+        try:
+            original_k_index = text.index(original_keyword)
+            l_words, r_words = extract_surround_words(original_keyword, text)
+            s = ' '.join([l_words, keyword, r_words])
 
-        keyword_id = disambiguation.disambiguate(keyword, s)
-        final_keyword = '[[' + keyword_id + '|' + original_keyword + ']]'
+            keyword_id = disambiguation.disambiguate(keyword, s)
+            final_keyword = '[[' + keyword_id + '|' + original_keyword + ']]'
 
-        text = text.replace(original_keyword, final_keyword, 1)
+            text = text.replace(original_keyword, final_keyword, 1)
+        # Sometimes a keyword is a subkeyword of this
+        except ValueError:
+            pass
 
     with open(opts['-o'], 'w') as f:
         f.write(text)
