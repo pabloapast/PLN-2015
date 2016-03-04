@@ -1,4 +1,7 @@
+import re
+
 from nltk.corpus import stopwords
+from nltk.tokenize import RegexpTokenizer
 
 
 ARTICLE_TAG = 'article'
@@ -14,3 +17,8 @@ NONWORDS = set(['ref', 'http', 'https', 'lt', 'gt', 'quot', 'wbr', 'shy',
 
 # Ignored words, not include in vocabulary: STOPWORDS + NONWORDS
 IGNORED_KEYWORDS = STOPWORDS.union(NONWORDS)
+
+# Some regexp
+MATCH_KEYWORDS = re.compile('\[\[([^][]+)\]\]', re.IGNORECASE)
+CLEAN_TEXT = re.compile('\{\{.*\}\}|\{\{.*\\n|.*\\n\}\}')
+TOKENIZE_TEXT = RegexpTokenizer(r'(?u)\b\w\w+\b')
