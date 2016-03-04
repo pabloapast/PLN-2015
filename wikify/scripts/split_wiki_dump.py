@@ -10,10 +10,11 @@ Options:
 """
 from docopt import docopt
 from os.path import basename, join, splitext
-import pickle
 import random
 
 from lxml import etree
+
+from wikify.utils import clear_xml_node
 
 
 if __name__ == '__main__':
@@ -39,18 +40,16 @@ if __name__ == '__main__':
     prob = eval(opts['-p'])
     assert 0 < prob < 1
 
-    for _, elem in etree.iterparse(input_file, tag='article'):
+    for _, article in etree.iterparse(input_file, tag='article'):
         # splits wiki dump choosing randomly the articles of each part
-        article = etree.tostring(elem)
+        article = etree.tostring(article)
         if random.random() < prob:
             train_out.write(article)
         else:
             test_out.write(article)
 
         # clear data read
-        elem.clear()
-        while elem.getprevious() is not None:
-            del elem.getparent()[0]
+        clear_xml_node(article)
 
     # write xml tail
     train_out.write(xml_tail)

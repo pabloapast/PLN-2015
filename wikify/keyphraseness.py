@@ -12,8 +12,9 @@ from wikify.utils import article_keywords, article_text, clear_xml_node
 
 class Keyphraseness:
 
-    def __init__(self, xml, n=3, ratio=0.04):
+    def __init__(self, xml, n=3, m=5, ratio=0.04):
         self.n = n
+        self.m = m
         self.ratio = ratio
 
         # Keywords names with their occurrence count
@@ -26,9 +27,8 @@ class Keyphraseness:
 
         # Delete undesirable keywords or that occurs less than 5 times
         for key, value in list(names_count.items()):
-            if value < 5 or key in IGNORED_KEYWORDS:
+            if value < m or key in IGNORED_KEYWORDS:
                 del names_count[key]
-        print('vocabulary len = ', len(names_count))
 
         # Used to count keywords occurrences in articles
         self._vectorizer = CountVectorizer(ngram_range=(1, self.n),
