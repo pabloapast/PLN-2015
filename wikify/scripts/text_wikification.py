@@ -1,7 +1,7 @@
 """Text wikification
 Usage:
-  wikify.py -i <file> -o <file> -k <file> [--ratio <r>] -d <file>
-  wikify.py -h | --help
+  text_wikification.py -i <file> -o <file> -k <file> [--ratio <r>] -d <file>
+  text_wikification.py -h | --help
 Options:
   -i <file>     Input text file.
   -o <file>     Output text after wikification process.
