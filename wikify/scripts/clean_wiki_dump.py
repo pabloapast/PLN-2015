@@ -39,7 +39,6 @@ if __name__ == '__main__':
     # There is a lot of keywords with an old id (title of article),
     # this dictionary maps old ids to the correct new ones
     title_unique_id = dict()
-    # Iterates over each wikipedia page in the xml
     for _, elem in etree.iterparse(opts['-i'], tag=PAGE_TAG):
         # Extract page ID (page type), we only want to parse articles
         namespace_id = extract_node_text(elem, NAMESPACE_TAG)
@@ -48,15 +47,25 @@ if __name__ == '__main__':
         try:
             redirect_title = extract_node_text(elem, REDIRECT_TAG)
             article_title = extract_node_text(elem, TITLE_TAG)
+            title_unique_id[redirect_title] = article_title
+        except StopIteration:
+            article_title = extract_node_text(elem, TITLE_TAG)
+            title_unique_id[article_title] = article_title
+        # Clear xml node
+        clear_xml_node(elem)
+
+    # Iterates over each wikipedia page in the xml
+    for _, elem in etree.iterparse(opts['-i'], tag=PAGE_TAG):
+        # Extract page ID (page type), we only want to parse articles
+        namespace_id = extract_node_text(elem, NAMESPACE_TAG)
+        # Check if is a redirect article, we want to exclude this article
+        # because doesn't have valuable information
+        try:
+            _ = extract_node_text(elem, REDIRECT_TAG)
             is_redirect = True
         except StopIteration:
             article_title = extract_node_text(elem, TITLE_TAG)
             is_redirect = False
-
-        if is_redirect:
-          title_unique_id[redirect_title] = article_title
-        else:
-          title_unique_id[article_title] = article_title
 
         if namespace_id == ARTICLE_ID and not is_redirect:
             # Text in the article
