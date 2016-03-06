@@ -47,10 +47,10 @@ if __name__ == '__main__':
         try:
             redirect_title = extract_node_text(elem, REDIRECT_TAG)
             article_title = extract_node_text(elem, TITLE_TAG)
-            title_unique_id[redirect_title] = article_title
+            title_unique_id[redirect_title.lower()] = article_title
         except StopIteration:
             article_title = extract_node_text(elem, TITLE_TAG)
-            title_unique_id[article_title] = article_title
+            title_unique_id[article_title.lower()] = article_title
         # Clear xml node
         clear_xml_node(elem)
 
@@ -96,7 +96,7 @@ if __name__ == '__main__':
                         # Clean keyword name
                         key_name = clean_keyword_name(key_name)
                         # Assign the correct id
-                        key_id = title_unique_id[key_id]
+                        key_id = title_unique_id[key_id.lower()]
                         # Left and right words
                         l_words, r_words = extract_surround_words(keyword,
                                                                   text)
