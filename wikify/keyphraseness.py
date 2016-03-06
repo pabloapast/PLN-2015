@@ -32,7 +32,8 @@ class Keyphraseness:
 
         # Used to count keywords occurrences in articles
         self._vectorizer = CountVectorizer(ngram_range=(1, self.n),
-                                           vocabulary=list(names_count.keys()))
+                                           vocabulary=list(names_count.keys()),
+                                           binary=True)
 
         # Iterates over articles in xml and count keywords
         keywords_counts = np.zeros((1, len(names_count)), dtype=np.int)
