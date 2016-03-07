@@ -24,7 +24,7 @@ PAGE_TAG = NAMESPACE + 'page'
 TITLE_TAG = NAMESPACE + 'title'
 REDIRECT_TAG = NAMESPACE + 'redirect'
 TEXT_TAG = NAMESPACE + 'text'
-IGNORED_STARTWITH = ('image:', 'file:', 'category:', 'wikipedia:')
+IGNORED_STARTWITH = ('image:', 'file:', 'category:', 'wikipedia:', 'wikt:')
 
 
 if __name__ == '__main__':
@@ -42,19 +42,20 @@ if __name__ == '__main__':
     for _, elem in etree.iterparse(opts['-i'], tag=PAGE_TAG):
         # Extract page ID (page type), we only want to parse articles
         namespace_id = extract_node_text(elem, NAMESPACE_TAG)
-        # Check if is a redirect article, we want to exclude this article
-        # because doesn't have valuable information
-        try:
-            redirect_title = extract_node_text(elem, REDIRECT_TAG)
-            article_title = extract_node_text(elem, TITLE_TAG)
-            title_unique_id[redirect_title.lower()] = article_title
-        except StopIteration:
-            article_title = extract_node_text(elem, TITLE_TAG)
-            title_unique_id[article_title.lower()] = article_title
+        if namespace_id == ARTICLE_ID:
+            try:
+                child = elem.iterchildren(tag=REDIRECT_TAG)
+                redirect_title = next(child).attrib['title']
+                article_title = extract_node_text(elem, TITLE_TAG)
+                title_unique_id[article_title.lower().split('#')[0]] = redirect_title.split('#')[0]
+            except StopIteration:
+                article_title = extract_node_text(elem, TITLE_TAG)
+                title_unique_id[article_title.lower().split('#')[0]] = article_title.split('#')[0]
         # Clear xml node
         clear_xml_node(elem)
 
     # Iterates over each wikipedia page in the xml
+    count_error = 0
     for _, elem in etree.iterparse(opts['-i'], tag=PAGE_TAG):
         # Extract page ID (page type), we only want to parse articles
         namespace_id = extract_node_text(elem, NAMESPACE_TAG)
@@ -91,12 +92,15 @@ if __name__ == '__main__':
 
                     # Keywords nodes
                     for keyword in keywords:
-                        key_id = extract_keyword_id(keyword)
+                        key_id = extract_keyword_id(keyword).split('#')[0]
                         key_name = extract_keyword_name(keyword)
                         # Clean keyword name
                         key_name = clean_keyword_name(key_name)
                         # Assign the correct id
-                        key_id = title_unique_id[key_id.lower()]
+                        try:
+                            key_id = title_unique_id[key_id.lower()]
+                        except:
+                            count_error += 1
                         # Left and right words
                         l_words, r_words = extract_surround_words(keyword,
                                                                   text)
@@ -114,3 +118,4 @@ if __name__ == '__main__':
 
     out.write(xml_tail)
     out.close()
+    print(count_error)
