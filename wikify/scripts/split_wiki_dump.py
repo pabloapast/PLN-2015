@@ -42,11 +42,11 @@ if __name__ == '__main__':
 
     for _, article in etree.iterparse(input_file, tag='article'):
         # splits wiki dump choosing randomly the articles of each part
-        article = etree.tostring(article)
+        article_string = etree.tostring(article)
         if random.random() < prob:
-            train_out.write(article)
+            train_out.write(article_string)
         else:
-            test_out.write(article)
+            test_out.write(article_string)
 
         # clear data read
         clear_xml_node(article)
