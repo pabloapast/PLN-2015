@@ -82,11 +82,11 @@ Evaluación:
 
         $ time python scripts/eval_keyphraseness.py -i models/Keyph-enwiki-clean-train -d wiki-dump/enwiki-clean-test.xml
 
-        real    120m7.039s
-        user    117m20.132s
-        sys     1m43.468s
+        real    23m52.089s
+        user    15m39.196s
+        sys     0m18.300s
 
-        297251 Articles - P: 62.92% - R: 58.11% - F1: 60.42%
+        297251 Articles - P: 65.32% - R: 60.33% - F1: 62.72%
 
     - Desambiguación::
 
