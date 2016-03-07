@@ -5,7 +5,6 @@ Usage:
 Options:
   -i <file>     Trained model to evaluate
   -d <file>     XML dump to test prediction
-  -t <file>     Wikipedia titles
   -n <n>        Number of articles to analyze [default: float('inf')]
   -h --help     Show this screen.
 """
@@ -35,10 +34,6 @@ if __name__ == '__main__':
 
     n = eval(opts['-n'])
 
-    # Load wikipedia article titles
-    with open(opts['-t'], 'rb') as f:
-        titles = pickle.load(f)
-
     # Load trained model
     with open(opts['-i'], 'rb') as f:
         model = pickle.load(f)
@@ -47,8 +42,7 @@ if __name__ == '__main__':
     for i, (_, article) in enumerate(etree.iterparse(xml, tag=ARTICLE_TAG)):
         keywords = article_keywords(article)
         keywords = [keyword for keyword in keywords
-                    if keyword.attrib['name'] in model.vocabulary and
-                    keyword.attrib['id'] in titles]
+                    if keyword.attrib['name'] in model.vocabulary]
 
         # Gold data, keywords with correct sense
         gold_key_id = model.keyword_ids(keywords)
